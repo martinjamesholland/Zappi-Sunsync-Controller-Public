@@ -1,0 +1,127 @@
+{
+	"info": {
+		"_postman_id": "b9d32e51-4132-43e0-8c27-eb335f5871d6",
+		"name": "Zappi API",
+		"description": "[https://support.myenergi.com/hc/en-gb/articles/5069627351185-How-do-I-get-an-API-key](https://support.myenergi.com/hc/en-gb/articles/5069627351185-How-do-I-get-an-API-key)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "44822306",
+		"_collection_link": "https://martin-4226047.postman.co/workspace/a3809f96-09b3-4e4d-8013-76b197627547/collection/44822306-b9d32e51-4132-43e0-8c27-eb335f5871d6?action=share&source=collection_link&creator=44822306"
+	},
+	"item": [
+		{
+			"name": "Zappi Status",
+			"request": {
+				"auth": {
+					"type": "digest",
+					"digest": [
+						{
+							"key": "password",
+							"value": "{{ZappiApiKey}}",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "{{ZappiSN}}",
+							"type": "string"
+						},
+						{
+							"key": "algorithm",
+							"value": "MD5",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://s{{APIServerNo}}.myenergi.net/cgi-jstatus-Z{{ZappiSN}}",
+					"protocol": "https",
+					"host": [
+						"s{{APIServerNo}}",
+						"myenergi",
+						"net"
+					],
+					"path": [
+						"cgi-jstatus-Z{{ZappiSN}}"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Zappi Status",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://s18.myenergi.net/cgi-jstatus-Z334234232",
+							"protocol": "https",
+							"host": [
+								"s18",
+								"myenergi",
+								"net"
+							],
+							"path": [
+								"cgi-jstatus-Z334234232"
+							]
+						}
+					},
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json",
+							"name": "Content-Type",
+							"description": "",
+							"type": "text"
+						}
+					],
+					"cookie": [
+						{
+							"expires": "Invalid Date"
+						}
+					],
+					"body": "{\n    \"zappi\": [\n        {\n            \"deviceClass\": \"ZAPPI\",\n            \"sno\": 64564563,\n            \"dat\": \"10-05-2025\",\n            \"tim\": \"20:45:44\",\n            \"ectp1\": 0,\n            \"ectp2\": 1,\n            \"ectp3\": 446,\n            \"ectt1\": \"Internal Load\",\n            \"ectt2\": \"Grid\",\n            \"ectt3\": \"Generation\",\n            \"bsm\": 0,\n            \"bst\": 0,\n            \"dst\": 1,\n            \"div\": 0,\n            \"frq\": 50.08,\n            \"gen\": 446,\n            \"grd\": 0,\n            \"pha\": 1,\n            \"pri\": 1,\n            \"sta\": 1,\n            \"tz\": 0,\n            \"vol\": 2449,\n            \"che\": 12.45,\n            \"isVHubEnabled\": true,\n            \"bss\": 0,\n            \"lck\": 31,\n            \"pst\": \"A\",\n            \"zmo\": 3,\n            \"pwm\": 5299,\n            \"zs\": 258,\n            \"rdc\": -1,\n            \"rac\": 3,\n            \"rrac\": -3,\n            \"zsh\": 1,\n            \"zsl\": 2,\n            \"ectt4\": \"None\",\n            \"ectt5\": \"None\",\n            \"ectt6\": \"None\",\n            \"beingTamperedWith\": false,\n            \"batteryDischargeEnabled\": false,\n            \"g100LockoutState\": \"NONE\",\n            \"phaseSetting\": \"SINGLE_PHASE\",\n            \"wifiLink\": true,\n            \"ethernetLink\": false,\n            \"ocppEnabled\": false,\n            \"mgl\": 100,\n            \"sbh\": 17,\n            \"sbk\": 5,\n            \"sbm\": 0,\n            \"fwv\": \"3562S5.557\",\n            \"cmt\": 254,\n            \"newAppAvailable\": false,\n            \"newBootloaderAvailable\": false,\n            \"productCode\": \"3562\"\n        }\n    ]\n}"
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "ZappiSN",
+			"value": "SetZappiSn",
+			"type": "string"
+		},
+		{
+			"key": "ZappiApiKey",
+			"value": "SetZappiApiKey",
+			"type": "string"
+		},
+		{
+			"key": "APIServerNo",
+			"value": "SetAPIServerNumber",
+			"type": "string"
+		}
+	]
+}

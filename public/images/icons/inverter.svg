@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="2" y="4" width="20" height="16" rx="2" ry="2" fill="#78909c" stroke="#546e7a" stroke-width="1"/>
+  <rect x="4" y="6" width="16" height="12" rx="1" ry="1" fill="#90a4ae" stroke="#546e7a" stroke-width="0.5"/>
+  <circle cx="7" cy="9" r="1" fill="#4fc3f7"/>
+  <circle cx="7" cy="15" r="1" fill="#4fc3f7"/>
+  <circle cx="17" cy="9" r="1" fill="#4fc3f7"/>
+  <circle cx="17" cy="15" r="1" fill="#4fc3f7"/>
+  <line x1="10" y1="9" x2="14" y2="9" stroke="#4fc3f7" stroke-width="1"/>
+  <line x1="10" y1="15" x2="14" y2="15" stroke="#4fc3f7" stroke-width="1"/>
+  <text x="12" y="12.5" font-family="Arial" font-size="3" text-anchor="middle" fill="#fff">INV</text>
+</svg> 

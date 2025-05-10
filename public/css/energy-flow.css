@@ -1,0 +1,273 @@
+.energy-flow-container {
+    position: relative;
+    width: 100%;
+    height: 450px;
+    margin: 20px 0;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #fafafa;
+}
+
+.energy-node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.energy-node img {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 5px;
+}
+
+.energy-node-label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.energy-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #90caf9;
+    margin-top: 2px;
+}
+
+.energy-percentage {
+    font-size: 18px;
+    font-weight: bold;
+    color: #66bb6a;
+    margin-top: 2px;
+}
+
+.energy-path {
+    position: absolute;
+    background-color: #ffb74d;
+    z-index: -1;
+}
+
+.energy-path.horizontal {
+    height: 4px;
+}
+
+.energy-path.vertical {
+    width: 4px;
+}
+
+.energy-path.connection-point {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Direction arrows with lines */
+.arrow-with-line {
+    position: absolute;
+    z-index: 5;
+}
+
+.arrow-line {
+    position: absolute;
+    background-color: #ff9800;
+    z-index: 5;
+}
+
+.arrow-line.horizontal {
+    height: 3px;
+    transform: translateY(-1.5px);
+}
+
+.arrow-line.vertical {
+    width: 3px;
+    transform: translateX(-1.5px);
+}
+
+/* Direction arrows */
+.direction-arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    z-index: 5;
+    opacity: 0;
+    filter: drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.3));
+}
+
+.direction-arrow.right {
+    border-width: 8px 0 8px 12px;
+    border-color: transparent transparent transparent #ff9800;
+}
+
+.direction-arrow.left {
+    border-width: 8px 12px 8px 0;
+    border-color: transparent #ff9800 transparent transparent;
+}
+
+.direction-arrow.up {
+    border-width: 12px 8px 0 8px;
+    border-color: #ff9800 transparent transparent transparent;
+}
+
+.direction-arrow.down {
+    border-width: 0 8px 12px 8px;
+    border-color: transparent transparent #ff9800 transparent;
+}
+
+/* Node positions - ADJUSTED for fixed-width connections */
+.solar-node {
+    top: 10px;
+    left: 25%;
+}
+
+.solar-node-2 {
+    top: 200px;
+    left: 25%;
+}
+
+.grid-node {
+    top: 10px;
+    right: 25%;
+}
+
+.inverter-node {
+    position: absolute;
+    top: 10px;
+    left: 304px;
+    z-index: 10;
+    width: 80px;
+    text-align: center;
+    pointer-events: none;
+}
+
+.inverter-node img {
+    width: 60px;
+    height: 60px;
+    display: block;
+    margin: 0 auto;
+}
+
+.inverter-node .energy-node-label {
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.battery-node {
+    top: 300px;
+    left: 35%;
+}
+
+.smart-node {
+    bottom: 30px;
+    left: 40%;
+}
+
+.ups-node {
+    bottom: 30px;
+    left: 50%;
+}
+
+.home-node {
+    bottom: 30px;
+    right: 25%;
+}
+
+/* Custom icons */
+.icon-solar {
+    font-size: 40px;
+    color: #ffb74d;
+}
+
+.icon-grid {
+    font-size: 40px;
+    color: #90caf9;
+}
+
+.icon-inverter {
+    font-size: 40px;
+    color: #78909c;
+}
+
+.icon-battery {
+    font-size: 40px;
+    color: #66bb6a;
+}
+
+.icon-home {
+    font-size: 40px;
+    color: #f06292;
+}
+
+.icon-ups {
+    font-size: 40px;
+    color: #7986cb;
+}
+
+.icon-smart {
+    font-size: 40px;
+    color: #4db6ac;
+}
+
+/* Energy flow lines */
+[id$="ToInverter"], [id^="inverterTo"] {
+    position: absolute;
+    height: 4px;
+    background-color: #ffb74d;
+    transform-origin: center;
+    z-index: 1;
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+}
+
+/* SVG path lines */
+.path-line {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.6;
+}
+
+/* Animation for active flow */
+@keyframes flowAnimation {
+    0% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.6;
+    }
+}
+
+.active-flow {
+    opacity: 1;
+    animation: flowAnimation 2s infinite;
+}
+
+/* Direction arrows animation */
+@keyframes arrowAnimation {
+    0% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.4;
+    }
+}
+
+.active-arrow {
+    opacity: 1;
+    animation: arrowAnimation 2s infinite;
+}
+
+.active-arrow-line {
+    opacity: 1;
+    animation: flowAnimation 2s infinite;
+} 
