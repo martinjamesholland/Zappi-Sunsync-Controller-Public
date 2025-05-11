@@ -216,19 +216,72 @@
 </style>
 
 <script>
-function refreshData() {
-    window.location.reload();
+let autoRefreshInterval = null;
+const REFRESH_INTERVAL = 30000; // 30 seconds
+
+function startAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    refreshData(); // Initial refresh
+    autoRefreshInterval = setInterval(refreshData, REFRESH_INTERVAL);
 }
 
-function toggleAutoRefresh() {
-    if (document.getElementById('autoRefresh').checked) {
-        setTimeout(refreshData, 5 * 60 * 1000);
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
     }
 }
 
-document.getElementById('autoRefresh').addEventListener('change', toggleAutoRefresh);
+function refreshData() {
+    fetch('{{ url("/ev-charging/status") }}', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Update the dashboard content
+        if (data.html) {
+            document.querySelector('.card-body').innerHTML = data.html;
+        }
+        document.getElementById('status-timestamp').textContent = 'Last updated: ' + new Date().toLocaleString();
+    })
+    .catch(error => {
+        console.error('Error fetching data:', error);
+        document.getElementById('status-timestamp').textContent = 'Error updating: ' + new Date().toLocaleString();
+    });
+}
 
-// Initial auto-refresh setup
-toggleAutoRefresh();
+// Initialize auto-refresh
+document.addEventListener('DOMContentLoaded', function() {
+    const autoRefreshCheckbox = document.getElementById('autoRefresh');
+    
+    if (autoRefreshCheckbox) {
+        if (autoRefreshCheckbox.checked) {
+            startAutoRefresh();
+        }
+        
+        autoRefreshCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+    }
+});
+
+// Clean up on page unload
+window.addEventListener('beforeunload', function() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+});
 </script>
 @endsection 

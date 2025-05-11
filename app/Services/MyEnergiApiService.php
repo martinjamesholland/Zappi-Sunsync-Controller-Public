@@ -15,9 +15,10 @@ class MyEnergiApiService
     private ?string $serial;
     private ?string $password;
     private string $baseUrl;
-    private $apiRequests = [];
+    private array $apiRequests = [];
+    private DataMaskingService $dataMaskingService;
 
-    public function __construct()
+    public function __construct(DataMaskingService $dataMaskingService)
     {
         $this->serial = config('myenergi.serial', env('ZAPPI_SERIAL'));
         $this->password = config('myenergi.password', env('ZAPPI_PASSWORD'));
@@ -27,19 +28,12 @@ class MyEnergiApiService
             'timeout' => 10.0,
             'http_errors' => false,
         ]);
+        $this->dataMaskingService = $dataMaskingService;
     }
 
     private function maskSensitiveData(array $data): array
     {
-        if (isset($data['headers']['Authorization'])) {
-            $auth = $data['headers']['Authorization'];
-            if (strpos($auth, 'Basic ') === 0) {
-                $data['headers']['Authorization'] = 'Basic ********' . substr(base64_decode(substr($auth, 6)), -5);
-            } elseif (strpos($auth, 'Digest ') === 0) {
-                $data['headers']['Authorization'] = 'Digest ********' . substr(base64_decode(substr($auth, 7)), -5);
-            }
-        }
-        return $data;
+        return $this->dataMaskingService->maskSensitiveData($data);
     }
 
     /**
@@ -128,7 +122,7 @@ class MyEnergiApiService
                 ->{strtolower($method)}($url, $data);
 
             $requestData['response'] = $response->json();
-            $this->apiRequests[] = $requestData;
+            $this->apiRequests[] = $this->maskSensitiveData($requestData);
 
             if ($response->successful()) {
                 return $response->json();
@@ -148,13 +142,13 @@ class MyEnergiApiService
             ]);
 
             $requestData['response'] = ['error' => $e->getMessage()];
-            $this->apiRequests[] = $requestData;
+            $this->apiRequests[] = $this->maskSensitiveData($requestData);
 
             return null;
         }
     }
 
-    public function getApiRequests()
+    public function getApiRequests(): array
     {
         return $this->apiRequests;
     }

@@ -55,13 +55,13 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2>SunSync Inverter Dashboard</h2>
+                    <h5 class="mb-0">SunSync Dashboard</h5>
                     <div>
                         <div class="form-check form-switch d-inline-block me-3">
                             <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
-                            <label class="form-check-label" for="auto-refresh">Auto-refresh (4m)</label>
+                            <label class="form-check-label" for="auto-refresh">Auto-refresh (30s)</label>
                         </div>
-                     <!--   <button id="refresh-btn" class="btn btn-primary btn-sm">Refresh Data</button> -->
+                        <button class="btn btn-primary btn-sm" id="refresh-btn">Refresh Now</button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -90,6 +90,16 @@
                                             <h4>Plant Information</h4>
                                         </div>
                                         <div class="card-body">
+                                            @if(isset($plantInfo['thumbUrl']) && !empty($plantInfo['thumbUrl']))
+                                            <div class="row mb-4">
+                                                <div class="col-md-12 text-center">
+                                                    <div class="plant-image-container" style="max-width: 600px; margin: 0 auto;">
+                                                        <img src="{{ $plantInfo['thumbUrl'] }}" alt="Plant Image" class="img-fluid rounded shadow" style="max-height: 300px; width: 100%; object-fit: cover;">
+                                                        <p class="text-muted mt-2">Plant image from SunSync</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @endif
                                             <div class="table-responsive">
                                                 <table class="table table-striped">
                                                     <tbody>
@@ -103,7 +113,7 @@
                                                             <td>Status</td>
                                                             <td class="table-status-value">{{ $plantInfo['status'] == 1 ? 'Active' : 'Inactive' }}</td>
                                                             <td>Address</td>
-                                                            <td class="table-status-value">{{ $plantInfo['address'] }}</td>
+                                                            <td class="table-status-value">********</td>
                                                         </tr>
                                                         <tr>
                                                             <td>Current Power</td>
@@ -608,7 +618,13 @@
                                                 </div>
                                                 <div class="mb-2">
                                                     <strong>Response:</strong>
-                                                    <pre><code>{{ json_encode($request['response'], JSON_PRETTY_PRINT) }}</code></pre>
+                                                    @php
+                                                        $response = $request['response'];
+                                                        if (isset($response['address'])) {
+                                                            $response['address'] = '********';
+                                                        }
+                                                    @endphp
+                                                    <pre><code>{{ json_encode($response, JSON_PRETTY_PRINT) }}</code></pre>
                                                 </div>
                                             </div>
                                             @endforeach
@@ -790,75 +806,78 @@
 
 @section('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const refreshBtn = document.getElementById('refresh-btn');
-        const autoRefresh = document.getElementById('auto-refresh');
-        let refreshInterval;
+let autoRefreshInterval = null;
+const REFRESH_INTERVAL = 30000; // 30 seconds
 
-        // Format JSON with syntax highlighting
-        function formatJSON() {
-            const jsonElements = document.querySelectorAll('pre code');
-            
-            jsonElements.forEach(element => {
-                const content = element.textContent;
-                try {
-                    const parsed = JSON.parse(content);
-                    element.innerHTML = syntaxHighlight(JSON.stringify(parsed, null, 4));
-                } catch (e) {
-                    console.error('Error parsing JSON:', e);
-                }
-            });
+function startAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    refreshData(); // Initial refresh
+    autoRefreshInterval = setInterval(refreshData, REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+}
+
+function refreshData() {
+    fetch('{{ url("/sunsync/dashboard") }}', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
         }
-
-        // Syntax highlighting for JSON
-        function syntaxHighlight(json) {
-            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-                let cls = 'json-number';
-                if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                        cls = 'json-key';
-                        match = match.replace(/:$/, '');
-                        return '<span class="' + cls + '">' + match + '</span>:';
-                    } else {
-                        cls = 'json-string';
-                    }
-                } else if (/true|false/.test(match)) {
-                    cls = 'json-boolean';
-                } else if (/null/.test(match)) {
-                    cls = 'json-null';
-                }
-                return '<span class="' + cls + '">' + match + '</span>';
-            });
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        // Start auto-refresh by default
-        function startAutoRefresh() {
-            refreshInterval = setInterval(() => {
-                window.location.reload();
-            }, 240000); // Refresh every 4 minutes
+        return response.json();
+    })
+    .then(data => {
+        // Update the dashboard content
+        if (data.html) {
+            document.querySelector('.card-body').innerHTML = data.html;
         }
+        document.getElementById('status-timestamp').textContent = 'Last updated: ' + new Date().toLocaleString();
+    })
+    .catch(error => {
+        console.error('Error fetching data:', error);
+        document.getElementById('status-timestamp').textContent = 'Error updating: ' + new Date().toLocaleString();
+    });
+}
 
-        // Auto-refresh toggle
-        autoRefresh.addEventListener('change', function() {
+// Initialize auto-refresh
+document.addEventListener('DOMContentLoaded', function() {
+    const autoRefreshCheckbox = document.getElementById('auto-refresh');
+    const refreshBtn = document.getElementById('refresh-btn');
+    
+    if (autoRefreshCheckbox) {
+        if (autoRefreshCheckbox.checked) {
+            startAutoRefresh();
+        }
+        
+        autoRefreshCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 startAutoRefresh();
             } else {
-                clearInterval(refreshInterval);
+                stopAutoRefresh();
             }
         });
+    }
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshData);
+    }
+});
 
-        // Manual refresh button
-        refreshBtn.addEventListener('click', function() {
-            window.location.reload();
-        });
-
-        // Format JSON on load
-        formatJSON();
-        
-        // Start auto-refresh on page load (since checkbox is checked by default)
-        startAutoRefresh();
-    });
+// Clean up on page unload
+window.addEventListener('beforeunload', function() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+});
 </script>
 <script src="{{ asset('js/energy-flow.js') }}"></script>
 @endsection 

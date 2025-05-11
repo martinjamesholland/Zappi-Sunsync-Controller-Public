@@ -37,11 +37,37 @@
                                 </p>
                             </div>
 
+                            <!-- Current Status -->
+                            <div class="mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Current Zappi Configuration</h5>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">Serial Number:</span>
+                                            @if($settingsStatus['ZAPPI_SERIAL'])
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">API Key:</span>
+                                            @if($settingsStatus['ZAPPI_PASSWORD'])
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="mb-3">
                                 <label for="ZAPPI_SERIAL" class="form-label">Zappi Serial Number</label>
                                 <input type="text" class="form-control @error('ZAPPI_SERIAL') is-invalid @enderror" 
                                     id="ZAPPI_SERIAL" name="ZAPPI_SERIAL" 
-                                    value="{{ old('ZAPPI_SERIAL', $settings['ZAPPI_SERIAL']) }}" required>
+                                    placeholder="Enter your Zappi serial number"
+                                    value="{{ old('ZAPPI_SERIAL') }}">
                                 @error('ZAPPI_SERIAL')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -51,7 +77,7 @@
                                 <label for="ZAPPI_PASSWORD" class="form-label">Zappi API Key</label>
                                 <input type="password" class="form-control @error('ZAPPI_PASSWORD') is-invalid @enderror" 
                                     id="ZAPPI_PASSWORD" name="ZAPPI_PASSWORD" 
-                                    value="{{ old('ZAPPI_PASSWORD', $settings['ZAPPI_PASSWORD']) }}" required>
+                                    placeholder="Enter your Zappi API key">
                                 @error('ZAPPI_PASSWORD')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -70,11 +96,37 @@
                                 </ol>
                             </div>
 
+                            <!-- Current Status -->
+                            <div class="mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Current SunSync Configuration</h5>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">Username:</span>
+                                            @if($settingsStatus['SUNSYNC_USERNAME'])
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">Password:</span>
+                                            @if($settingsStatus['SUNSYNC_PASSWORD'])
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="mb-3">
                                 <label for="SUNSYNC_USERNAME" class="form-label">SunSync Username</label>
                                 <input type="text" class="form-control @error('SUNSYNC_USERNAME') is-invalid @enderror" 
                                     id="SUNSYNC_USERNAME" name="SUNSYNC_USERNAME" 
-                                    value="{{ old('SUNSYNC_USERNAME', $settings['SUNSYNC_USERNAME']) }}" required>
+                                    placeholder="Enter your SunSync username"
+                                    value="{{ old('SUNSYNC_USERNAME') }}">
                                 @error('SUNSYNC_USERNAME')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -84,7 +136,7 @@
                                 <label for="SUNSYNC_PASSWORD" class="form-label">SunSync Password</label>
                                 <input type="password" class="form-control @error('SUNSYNC_PASSWORD') is-invalid @enderror" 
                                     id="SUNSYNC_PASSWORD" name="SUNSYNC_PASSWORD" 
-                                    value="{{ old('SUNSYNC_PASSWORD', $settings['SUNSYNC_PASSWORD']) }}" required>
+                                    placeholder="Enter your SunSync password">
                                 @error('SUNSYNC_PASSWORD')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -92,7 +144,7 @@
                         </div>
 
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                            <button type="submit" class="btn btn-primary">Update Settings</button>
                         </div>
                     </form>
                 </div>

@@ -13,27 +13,46 @@ class SettingsController extends Controller
 {
     public function index(): View
     {
-        $settings = [
-            'ZAPPI_SERIAL' => env('ZAPPI_SERIAL'),
-            'ZAPPI_PASSWORD' => env('ZAPPI_PASSWORD'),
-            'SUNSYNC_USERNAME' => env('SUNSYNC_USERNAME'),
-            'SUNSYNC_PASSWORD' => env('SUNSYNC_PASSWORD'),
+        $settingsStatus = [
+            'ZAPPI_SERIAL' => !empty(env('ZAPPI_SERIAL')),
+            'ZAPPI_PASSWORD' => !empty(env('ZAPPI_PASSWORD')),
+            'SUNSYNC_USERNAME' => !empty(env('SUNSYNC_USERNAME')),
+            'SUNSYNC_PASSWORD' => !empty(env('SUNSYNC_PASSWORD')),
         ];
 
-        return view('settings.index', compact('settings'));
+        return view('settings.index', compact('settingsStatus'));
     }
 
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'ZAPPI_SERIAL' => 'required|string',
-            'ZAPPI_PASSWORD' => 'required|string',
-            'SUNSYNC_USERNAME' => 'required|string',
-            'SUNSYNC_PASSWORD' => 'required|string',
+            'ZAPPI_SERIAL' => 'nullable|string',
+            'ZAPPI_PASSWORD' => 'nullable|string',
+            'SUNSYNC_USERNAME' => 'nullable|string',
+            'SUNSYNC_PASSWORD' => 'nullable|string',
         ]);
 
+        // Filter out empty values to keep existing settings
+        $filteredSettings = array_filter($validated, fn($value) => !is_null($value) && $value !== '');
+        
+        // Get current values for fields not being updated
+        $keys = ['ZAPPI_SERIAL', 'ZAPPI_PASSWORD', 'SUNSYNC_USERNAME', 'SUNSYNC_PASSWORD'];
+        $currentSettings = [];
+        
+        foreach ($keys as $key) {
+            if (!isset($filteredSettings[$key])) {
+                $currentValue = env($key);
+                if (!empty($currentValue)) {
+                    $currentSettings[$key] = $currentValue;
+                }
+            }
+        }
+        
+        // Merge current settings with new values
+        $settingsToUpdate = array_merge($currentSettings, $filteredSettings);
+        
         // Update .env file
-        $this->updateEnvFile($validated);
+        $this->updateEnvFile($settingsToUpdate);
 
         // Clear config cache
         Artisan::call('config:clear');

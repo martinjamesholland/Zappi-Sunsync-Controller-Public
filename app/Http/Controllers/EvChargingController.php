@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Services\MyEnergiApiService;
 use App\Services\SunSyncService;
 use App\Services\EvChargingSettingsService;
+use App\Services\DataMaskingService;
 use App\Models\SunSyncSetting;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
@@ -19,15 +20,18 @@ class EvChargingController extends Controller
     private MyEnergiApiService $myEnergiApiService;
     private SunSyncService $sunSyncService;
     private EvChargingSettingsService $settingsService;
+    private DataMaskingService $dataMaskingService;
 
     public function __construct(
         MyEnergiApiService $myEnergiApiService,
         SunSyncService $sunSyncService,
-        EvChargingSettingsService $settingsService
+        EvChargingSettingsService $settingsService,
+        DataMaskingService $dataMaskingService
     ) {
         $this->myEnergiApiService = $myEnergiApiService;
         $this->sunSyncService = $sunSyncService;
         $this->settingsService = $settingsService;
+        $this->dataMaskingService = $dataMaskingService;
     }
 
     public function updateSystemMode(): View|JsonResponse
@@ -293,27 +297,35 @@ class EvChargingController extends Controller
 
     private function handleResponse(bool $isCronMode, array $logs, array $apiCalls, bool $success, ?string $errorMessage = null): View|JsonResponse
     {
+        // Mask sensitive data in API calls
+        $maskedApiCalls = [];
+        foreach ($apiCalls as $apiCall) {
+            $maskedApiCalls[] = $this->dataMaskingService->maskSensitiveData($apiCall);
+        }
+        
         if ($isCronMode) {
             return response()->json([
                 'success' => $success,
-                'timestamp' => now()->format('Y-m-d H:i:s'),
+                'message' => $errorMessage,
                 'logs' => $logs,
-                'api_calls' => $apiCalls,
-                'current_settings' => $this->settingsService->getSettings(),
-                'error_message' => $errorMessage
-            ]);
+                'apiCalls' => $maskedApiCalls
+            ], $success ? 200 : 400);
         }
 
-        if (!$success && $errorMessage) {
-            return view('ev-charging.error', [
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => $success,
                 'message' => $errorMessage,
-                'showSettingsLink' => true
-            ]);
+                'logs' => $logs,
+                'apiCalls' => $maskedApiCalls
+            ], $success ? 200 : 400);
         }
 
         return view('ev-charging.status', [
+            'success' => $success,
+            'message' => $errorMessage,
             'logs' => $logs,
-            'apiCalls' => $apiCalls,
+            'apiCalls' => $maskedApiCalls,
             'settings' => $this->settingsService->getSettings()
         ]);
     }

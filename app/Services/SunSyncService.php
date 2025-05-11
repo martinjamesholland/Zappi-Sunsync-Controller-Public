@@ -13,10 +13,12 @@ class SunSyncService
     private string $baseUrl = 'https://api.sunsynk.net';
     private ?string $accessToken = null;
     private array $apiRequests = [];
+    private DataMaskingService $dataMaskingService;
 
-    public function __construct()
+    public function __construct(DataMaskingService $dataMaskingService)
     {
         $this->accessToken = Cache::get('sunsynk_access_token');
+        $this->dataMaskingService = $dataMaskingService;
     }
 
     /**
@@ -24,36 +26,7 @@ class SunSyncService
      */
     private function maskSensitiveData(array $data): array
     {
-        $masked = $data;
-        
-        // Mask password fields
-        if (isset($masked['password'])) {
-            $masked['password'] = '********';
-        }
-        
-        // Mask access tokens but show last 5 chars
-        if (isset($masked['access_token'])) {
-            $token = $masked['access_token'];
-            $masked['access_token'] = '********' . substr($token, -5);
-        }
-        
-        // Mask authorization headers but show last 5 chars
-        if (isset($masked['headers']['Authorization'])) {
-            $auth = $masked['headers']['Authorization'];
-            if (strpos($auth, 'Bearer ') === 0) {
-                $token = substr($auth, 7); // Remove 'Bearer ' prefix
-                $masked['headers']['Authorization'] = 'Bearer ********' . substr($token, -5);
-            }
-        }
-        
-        // Recursively process nested arrays
-        foreach ($masked as $key => $value) {
-            if (is_array($value)) {
-                $masked[$key] = $this->maskSensitiveData($value);
-            }
-        }
-        
-        return $masked;
+        return $this->dataMaskingService->maskSensitiveData($data);
     }
 
     public function authenticate(string $username, string $password): ?array

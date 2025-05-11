@@ -66,7 +66,7 @@
                     <div>
                         <div class="form-check form-switch d-inline-block me-3">
                             <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
-                            <label class="form-check-label" for="auto-refresh">Auto-refresh (4m)</label>
+                            <label class="form-check-label" for="auto-refresh">Auto-refresh (30s)</label>
                         </div>
                        <!-- <button id="refresh-btn" class="btn btn-primary btn-sm">Refresh Data</button> -->
                     </div>
@@ -527,9 +527,8 @@
     document.addEventListener('DOMContentLoaded', function() {
         const refreshBtn = document.getElementById('refresh-btn');
         const autoRefresh = document.getElementById('auto-refresh');
-        let refreshInterval;
-        let lastUpdatedInterval;
-        const REFRESH_INTERVAL = 4 * 60 * 1000; // 4 minutes in milliseconds
+        let autoRefreshInterval = null;
+        const REFRESH_INTERVAL = 30000; // 30 seconds
 
         // Store the last known Zappi time
         let lastZappiTime = null;
@@ -558,13 +557,13 @@
         // Start the 5-second timer
         function startTimer() {
             // Clear any existing timer
-            if (lastUpdatedInterval) {
-                clearInterval(lastUpdatedInterval);
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
             }
             // Run immediately
             updateTime();
             // Set new timer
-            lastUpdatedInterval = setInterval(updateTime, 5000);
+            autoRefreshInterval = setInterval(updateTime, 5000);
         }
 
         function updateUI(data) {
@@ -631,18 +630,17 @@
         }
 
         function startAutoRefresh() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
             }
-            if (autoRefresh.checked) {
-                refreshInterval = setInterval(refreshData, REFRESH_INTERVAL);
-            }
+            refreshData(); // Initial refresh
+            autoRefreshInterval = setInterval(refreshData, REFRESH_INTERVAL);
         }
 
         function stopAutoRefresh() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-                refreshInterval = null;
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
             }
         }
 
@@ -667,13 +665,19 @@
                     'Accept': 'application/json',
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 updateUI(data);
                 document.getElementById('status-timestamp').textContent = 'Last updated: ' + new Date().toLocaleString();
             })
             .catch(error => {
                 console.error('Error fetching data:', error);
+                document.getElementById('status-timestamp').textContent = 'Error updating: ' + new Date().toLocaleString();
             });
         }
 
@@ -789,8 +793,7 @@
 
         // Clean up on page unload
         window.addEventListener('beforeunload', function() {
-            if (lastUpdatedInterval) clearInterval(lastUpdatedInterval);
-            if (refreshInterval) clearInterval(refreshInterval);
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
         });
     });
 </script>
