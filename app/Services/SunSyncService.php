@@ -115,17 +115,34 @@ class SunSyncService
             $response = Http::withToken($this->accessToken)
                 ->get($this->baseUrl . '/api/v1/plants', $requestData);
 
+            $responseData = $response->json();
+            
+            // Create a deep copy for the API requests log that will be masked
+            $responseDataForLog = json_decode(json_encode($responseData), true);
+            
+            // Explicitly mask IDs in the plant info response displayed in logs
+            if (isset($responseDataForLog['data']['infos']) && is_array($responseDataForLog['data']['infos'])) {
+                foreach ($responseDataForLog['data']['infos'] as &$info) {
+                    if (isset($info['id'])) {
+                        $strId = (string)$info['id'];
+                        if (strlen($strId) > 2) {
+                            $info['id'] = substr($strId, 0, 1) . str_repeat('*', strlen($strId) - 2) . substr($strId, -1);
+                        }
+                    }
+                }
+            }
+            
             // Store request details with masked sensitive data
             $this->apiRequests['plant_info'] = $this->maskSensitiveData([
                 'url' => $this->baseUrl . '/api/v1/plants',
                 'method' => 'GET',
                 'headers' => ['Authorization' => 'Bearer ' . $this->accessToken],
                 'body' => $requestData,
-                'response' => $response->json()
+                'response' => $responseDataForLog
             ]);
 
             if ($response->successful()) {
-                $data = $response->json();
+                $data = $responseData;
                 return $data['data']['infos'][0] ?? null;
             }
             Log::error('SunSync get plant info failed: API request failed');

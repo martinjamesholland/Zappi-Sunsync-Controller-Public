@@ -105,7 +105,18 @@
                                                     <tbody>
                                                         <tr>
                                                             <td>Plant ID</td>
-                                                            <td class="table-status-value">{{ $plantInfo['id'] }}</td>
+                                                            <td class="table-status-value">
+                                                                @php
+                                                                    $id = $plantInfo['id'];
+                                                                    $strId = (string)$id;
+                                                                    if (strlen($strId) > 2) {
+                                                                        $maskedId = substr($strId, 0, 1) . str_repeat('*', strlen($strId) - 2) . substr($strId, -1);
+                                                                        echo $maskedId;
+                                                                    } else {
+                                                                        echo $id;
+                                                                    }
+                                                                @endphp
+                                                            </td>
                                                             <td>Plant Name</td>
                                                             <td class="table-status-value">{{ $plantInfo['name'] }}</td>
                                                         </tr>
@@ -618,13 +629,7 @@
                                                 </div>
                                                 <div class="mb-2">
                                                     <strong>Response:</strong>
-                                                    @php
-                                                        $response = $request['response'];
-                                                        if (isset($response['address'])) {
-                                                            $response['address'] = '********';
-                                                        }
-                                                    @endphp
-                                                    <pre><code>{{ json_encode($response, JSON_PRETTY_PRINT) }}</code></pre>
+                                                    <pre><code>{{ json_encode($request['response'], JSON_PRETTY_PRINT) }}</code></pre>
                                                 </div>
                                             </div>
                                             @endforeach

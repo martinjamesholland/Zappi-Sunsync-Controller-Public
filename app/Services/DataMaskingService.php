@@ -16,7 +16,7 @@ class DataMaskingService
     public function maskSensitiveData(array $data, array $fieldsToMask = []): array
     {
         $defaultFieldsToMask = [
-            'sn', 'sno', 'serialNumber', 'inverterSn', 'serial', 'deviceId'
+            'sn', 'sno', 'serialNumber', 'inverterSn', 'serial', 'deviceId', 'id'
         ];
         
         $fieldsToMask = array_merge($defaultFieldsToMask, $fieldsToMask);
@@ -64,9 +64,13 @@ class DataMaskingService
             if (is_array($value)) {
                 $result[$key] = $this->maskRecursively($value, $fieldsToMask);
             } else if (in_array($key, $fieldsToMask) && is_scalar($value)) {
-                // Mask but keep first 2 and last 2 characters
+                // Mask but keep first 1 and last 1 characters for IDs
                 $strValue = (string)$value;
-                if (strlen($strValue) > 6) {
+                if ($key === 'id' && strlen($strValue) > 2) {
+                    $result[$key] = substr($strValue, 0, 1) . str_repeat('*', strlen($strValue) - 2) . substr($strValue, -1);
+                } 
+                // Mask but keep first 2 and last 2 characters for other sensitive data
+                else if (strlen($strValue) > 6) {
                     $result[$key] = substr($strValue, 0, 2) . '******' . substr($strValue, -2);
                 } else {
                     $result[$key] = '******';

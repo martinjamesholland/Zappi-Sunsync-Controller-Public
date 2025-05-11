@@ -83,9 +83,9 @@ class SunSyncController extends Controller
                 elseif ($key === 'sn' && is_string($value)) {
                     $value = $this->maskSerialNumber($value);
                 }
-                // Mask plant IDs
-                elseif ($key === 'id' && is_string($value) && ctype_digit($value)) {
-                    $value = $this->maskPlantId($value);
+                // Mask plant IDs - handle both string and integer values
+                elseif ($key === 'id' && (is_string($value) || is_numeric($value))) {
+                    $value = $this->maskPlantId((string)$value);
                 }
                 // Mask email addresses
                 elseif (is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL)) {
