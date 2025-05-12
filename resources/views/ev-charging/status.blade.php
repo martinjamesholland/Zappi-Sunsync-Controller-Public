@@ -154,13 +154,13 @@ No settings update needed - all values already match
                     </div>
 
                     <div class="mb-3">
-                        <strong>Last Updated:</strong> {{ now()->format('Y-m-d H:i:s') }}
+                        <strong>Last Updated:</strong> {{ now()->timezone('Europe/London')->format('Y-m-d H:i:s') }}
                     </div>
 
                     <div class="log-container" style="max-height: 400px; overflow-y: auto;">
                         @foreach($logs as $log)
                             <div class="log-entry">
-                                <span class="text-muted">{{ now()->format('H:i:s') }}</span> {{ $log }}
+                                <span class="text-muted">{{ now()->timezone('Europe/London')->format('H:i:s') }}</span> {{ $log }}
                             </div>
                         @endforeach
                     </div>

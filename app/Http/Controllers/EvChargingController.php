@@ -40,7 +40,7 @@ class EvChargingController extends Controller
     {
         $logs = [];
         $apiCalls = [];
-        $currentTime = Carbon::now();
+        $currentTime = Carbon::now()->timezone('Europe/London');
         $isTestMode = request()->has('test_mode');
         $isCronMode = request()->has('cron_mode');
 
@@ -134,7 +134,7 @@ class EvChargingController extends Controller
         ];
 
         // Try to get cached settings first
-        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->subMinutes(1))
+        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->timezone('Europe/London')->subMinutes(1))
             ->latest()
             ->first();
 
@@ -367,7 +367,7 @@ class EvChargingController extends Controller
         if (request()->has('cron_mode')) {
             // Check if plain text output is requested
             if (request()->input('format') !== 'json') {
-                $timestamp = now()->format('Y-m-d H:i:s');
+                $timestamp = now()->timezone('Europe/London')->format('Y-m-d H:i:s');
                 $textOutput = "=== EV CHARGING SETTINGS UPDATE: {$timestamp} ===\n\n";
                 $textOutput .= "Status: " . ($success ? "SUCCESS" : "FAILED") . "\n";
                 $textOutput .= "Message: " . ($success ? "Settings updated successfully" : "Failed to update settings") . "\n\n";
@@ -413,7 +413,7 @@ class EvChargingController extends Controller
             // Check if plain text output is requested (default for cron mode)
             if (request()->input('format') !== 'json') {
                 // Create a plain text output
-                $timestamp = now()->format('Y-m-d H:i:s');
+                $timestamp = now()->timezone('Europe/London')->format('Y-m-d H:i:s');
                 $textOutput = "=== EV CHARGING STATUS UPDATE: {$timestamp} ===\n\n";
                 $textOutput .= "Status: " . ($success ? "SUCCESS" : "FAILED") . "\n";
                 
