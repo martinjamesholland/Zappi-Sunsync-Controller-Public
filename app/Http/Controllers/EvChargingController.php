@@ -121,7 +121,7 @@ class EvChargingController extends Controller
         ];
 
         // Try to get cached settings first
-        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->subHours(2))
+        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->subMinutes(4))
             ->latest()
             ->first();
 
@@ -138,6 +138,10 @@ class EvChargingController extends Controller
                 'request' => null,
                 'response' => $plantInfo
             ];
+            
+            // Add a debug log entry
+            $logs[] = "Debug: Plant Info API Call added to apiCalls array - " . (is_null($plantInfo) ? "Response is NULL" : "Response has data");
+            
             if (!$plantInfo) {
                 $logs[] = "Error: Failed to get plant information";
                 return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get SunSync plant information. Please check your SunSync credentials in Settings.');
@@ -300,7 +304,12 @@ class EvChargingController extends Controller
         // Mask sensitive data in API calls
         $maskedApiCalls = [];
         foreach ($apiCalls as $apiCall) {
-            $maskedApiCalls[] = $this->dataMaskingService->maskSensitiveData($apiCall);
+            $maskedApiCall = $this->dataMaskingService->maskSensitiveData($apiCall);
+            // Ensure response is formatted correctly even if null
+            if (!isset($maskedApiCall['response']) || $maskedApiCall['response'] === null) {
+                $maskedApiCall['response'] = [];
+            }
+            $maskedApiCalls[] = $maskedApiCall;
         }
         
         if ($isCronMode) {

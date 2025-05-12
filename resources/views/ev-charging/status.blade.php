@@ -154,24 +154,35 @@
 
                     @if(!empty($apiCalls))
                         <div class="mt-4">
-                            <h6>API Calls</h6>
+                            <h6>API Calls <small class="text-muted">(Total: {{ count($apiCalls) }})</small></h6>
                             <div class="api-calls-container" style="max-height: 400px; overflow-y: auto;">
-                                @foreach($apiCalls as $call)
+                                @foreach($apiCalls as $index => $call)
                                     <div class="api-call mb-3">
                                         <div class="api-call-header">
-                                            <strong>{{ $call['name'] }}</strong>
-                                            <small class="text-muted ms-2">{{ $call['endpoint'] }}</small>
+                                            <strong>{{ $call['name'] ?? 'Unnamed API Call' }}</strong>
+                                            <small class="text-muted ms-2">{{ isset($call['endpoint']) ? preg_replace('/\/api\/v1\/plant\/(\d+)\//', '/api/v1/plant/******/', $call['endpoint']) : 'No endpoint' }}</small>
+                                            <small class="text-muted ms-2">(#{{ $index + 1 }})</small>
                                         </div>
-                                        @if($call['request'])
+                                        @if(isset($call['request']))
                                             <div class="api-call-request">
                                                 <small class="text-muted">Request:</small>
-                                                <pre class="mb-1"><code>{{ json_encode($call['request'], JSON_PRETTY_PRINT) }}</code></pre>
+                                                <pre class="mb-1"><code>@php
+    if (isset($call['request']) && is_array($call['request'])) {
+        $maskedRequest = $call['request'];
+        if (isset($maskedRequest['plantId'])) {
+            $maskedRequest['plantId'] = '******';
+        }
+        echo json_encode($maskedRequest, JSON_PRETTY_PRINT);
+    } else {
+        echo json_encode($call['request'], JSON_PRETTY_PRINT);
+    }
+@endphp</code></pre>
                                             </div>
                                         @endif
-                                        @if($call['response'])
+                                        @if(isset($call['response']))
                                             <div class="api-call-response">
                                                 <small class="text-muted">Response:</small>
-                                                <pre class="mb-0"><code>{{ json_encode($call['response'], JSON_PRETTY_PRINT) }}</code></pre>
+                                                <pre class="mb-0"><code>{{ isset($call['response']) ? 'JSON Response: ' . (empty($call['response']) ? 'Empty' : 'Success') : 'No response' }}</code></pre>
                                             </div>
                                         @endif
                                     </div>
