@@ -48,6 +48,17 @@ class EvChargingController extends Controller
         $sunSyncUsername = config('services.sunsync.username');
         $sunSyncPassword = config('services.sunsync.password');
 
+        // Validate APP_KEY for test mode
+        if ($isTestMode) {
+            $providedKey = request()->input('app_key');
+            $appKey = config('app.key');
+            
+            if (!$providedKey || $providedKey !== $appKey) {
+                $logs[] = "Error: Invalid or missing APP_KEY for test mode";
+                return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Invalid or missing APP_KEY. Test mode requires valid APP_KEY.');
+            }
+        }
+
         if (empty($zappiSerial) || empty($zappiPassword)) {
             $logs[] = "Error: Zappi credentials are not configured";
             return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Zappi credentials are not configured. Please go to Settings and add your Zappi serial number and API key.');

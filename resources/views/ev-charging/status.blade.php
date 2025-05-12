@@ -14,8 +14,7 @@
                             <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
                             <label class="form-check-label" for="autoRefresh">Auto-refresh (5 min)</label>
                         </div>
-                       <!-- <button class="btn btn-primary btn-sm" onclick="refreshData()">Refresh Now</button> -->
-                        <a href="{{ route('ev-charging.status', ['test_mode' => 1]) }}" class="btn btn-warning btn-sm">Test Charging Mode</a>
+                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#testModeModal">Test Charging Mode</button>
                     </div>
                 </div>
 
@@ -192,6 +191,31 @@
                     @endif
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Mode Modal -->
+<div class="modal fade" id="testModeModal" tabindex="-1" aria-labelledby="testModeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testModeModalLabel">Enter APP_KEY for Test Mode</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('ev-charging.status') }}" method="GET">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="app_key" class="form-label">APP_KEY</label>
+                        <input type="password" class="form-control" id="app_key" name="app_key" required>
+                        <input type="hidden" name="test_mode" value="1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Enter Test Mode</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
