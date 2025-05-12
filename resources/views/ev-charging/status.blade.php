@@ -96,6 +96,7 @@
                                         <li>Make sure the cron job runs as the same user that owns the Laravel application files</li>
                                         <li>The cron job requires proper permissions to access the application files</li>
                                         <li>You can adjust the frequency by modifying the cron schedule (e.g., */10 for every 10 minutes)</li>
+                                        <li>To save the output to a log file, modify the command to: <code>*/5 * * * * curl -s "{{ url('/ev-charging/status?cron_mode=1') }}" >> /path/to/logfile.log 2>&1</code></li>
                                     </ul>
                                 </div>
 
@@ -104,20 +105,33 @@
                                     <ul>
                                         <li>When <code>cron_mode=1</code> is added to the URL, the system runs in a special mode that:</li>
                                         <ul>
-                                            <li>Returns JSON responses instead of HTML views</li>
+                                            <li>Returns plain text output by default for easy reading in logs</li>
                                             <li>Includes detailed logs and API call information</li>
                                             <li>Provides current settings and status updates</li>
                                             <li>Can be used for monitoring and debugging</li>
                                         </ul>
-                                        <li>Example response format:</li>
-                                        <pre class="mt-2"><code>{
-    "success": true,
-    "timestamp": "2024-03-21 10:00:00",
-    "logs": [...],
-    "api_calls": [...],
-    "current_settings": {...},
-    "error_message": null
-}</code></pre>
+                                        <li>You can still get JSON output by adding <code>&format=json</code> to the URL</li>
+                                        <li>Example plain text output:</li>
+                                        <pre class="mt-2"><code>=== EV CHARGING STATUS UPDATE: 2024-03-21 10:00:00 ===
+
+Status: SUCCESS
+
+--- LOGS ---
+Retrieved Zappi status at 2024-03-21 10:00:00
+EV Status: Not Charging
+Time Check: Day Time
+No settings update needed - all values already match
+
+--- API CALLS ---
+1. MyEnergi API - Get Zappi Status
+   Endpoint: GET /api/zappi/status
+   Response: Success
+
+2. SunSync API - Get Current Settings
+   Endpoint: GET /api/v1/common/setting/******/read
+   Response: Success
+
+========== END OF REPORT ==========</code></pre>
                                     </ul>
                                 </div>
 

@@ -21,7 +21,7 @@ class SunSyncSetting extends Model
     public static function getCachedSettings(string $inverterSn): ?array
     {
         $settings = self::where('inverter_sn', $inverterSn)
-            ->where('last_updated', '>=', Carbon::now()->subMinutes(4))
+            ->where('last_updated', '>=', Carbon::now()->subMinutes(1))
             ->latest()
             ->first();
 

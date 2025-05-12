@@ -56,9 +56,20 @@ class SunSyncService
 
             if ($response->successful()) {
                 $data = $response->json();
+                
+                // Check for different API response formats
                 if (isset($data['data']['access_token'])) {
                     $this->accessToken = $data['data']['access_token'];
-                    Cache::put('sunsynk_access_token', $this->accessToken, now()->addMinutes(60));
+                    // Store token with proper expiration
+                    $expiresIn = $data['data']['expires_in'] ?? 3600; // Default to 1 hour if not provided
+                    Cache::put('sunsynk_access_token', $this->accessToken, now()->addSeconds($expiresIn - 60)); // Subtract a minute for safety
+                    return $data;
+                } elseif (isset($data['access_token'])) {
+                    // Alternative format sometimes returned by OAuth servers
+                    $this->accessToken = $data['access_token'];
+                    // Store token with proper expiration
+                    $expiresIn = $data['expires_in'] ?? 3600; // Default to 1 hour if not provided
+                    Cache::put('sunsynk_access_token', $this->accessToken, now()->addSeconds($expiresIn - 60)); // Subtract a minute for safety
                     return $data;
                 }
             }
@@ -67,10 +78,13 @@ class SunSyncService
             $errorData = $response->json();
             $errorMessage = 'Authentication failed';
             
+            // Check various error message formats
             if (isset($errorData['message'])) {
                 $errorMessage = $errorData['message'];
             } elseif (isset($errorData['error'])) {
                 $errorMessage = $errorData['error'];
+            } elseif (isset($errorData['error_description'])) {
+                $errorMessage = $errorData['error_description'];
             }
 
             Log::error('SunSync authentication failed', [
@@ -99,9 +113,22 @@ class SunSyncService
 
     public function getPlantInfo(): ?array
     {
+        // Attempt to authenticate if token is missing
         if (!$this->accessToken) {
-            Log::error('SunSync get plant info failed: No access token');
-            return null;
+            Log::info('SunSync access token missing, attempting to authenticate');
+            $username = config('services.sunsync.username');
+            $password = config('services.sunsync.password');
+            
+            if (empty($username) || empty($password)) {
+                Log::error('SunSync get plant info failed: Missing credentials');
+                return null;
+            }
+            
+            $authResult = $this->authenticate($username, $password);
+            if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
+                Log::error('SunSync get plant info failed: Authentication failed');
+                return null;
+            }
         }
 
         try {
@@ -116,6 +143,25 @@ class SunSyncService
                 ->get($this->baseUrl . '/api/v1/plants', $requestData);
 
             $responseData = $response->json();
+            
+            // If we get an unauthorized response, try to re-authenticate once
+            if ($response->status() === 401) {
+                Log::info('SunSync access token expired, re-authenticating');
+                $username = config('services.sunsync.username');
+                $password = config('services.sunsync.password');
+                
+                $authResult = $this->authenticate($username, $password);
+                if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
+                    Log::error('SunSync get plant info failed: Re-authentication failed');
+                    return null;
+                }
+                
+                // Try the request again with the new token
+                $response = Http::withToken($this->accessToken)
+                    ->get($this->baseUrl . '/api/v1/plants', $requestData);
+                    
+                $responseData = $response->json();
+            }
             
             // Create a deep copy for the API requests log that will be masked
             $responseDataForLog = json_decode(json_encode($responseData), true);
@@ -145,7 +191,11 @@ class SunSyncService
                 $data = $responseData;
                 return $data['data']['infos'][0] ?? null;
             }
-            Log::error('SunSync get plant info failed: API request failed');
+            
+            Log::error('SunSync get plant info failed: API request failed', [
+                'status' => $response->status(),
+                'response' => $responseData
+            ]);
             return null;
         } catch (\Exception $e) {
             Log::error('SunSync get plant info failed', [
@@ -157,9 +207,22 @@ class SunSyncService
 
     public function getInverterInfo($plantId): ?array
     {
+        // Attempt to authenticate if token is missing
         if (!$this->accessToken) {
-            Log::error('SunSync get inverter info failed: No access token');
-            return null;
+            Log::info('SunSync access token missing, attempting to authenticate for inverter info');
+            $username = config('services.sunsync.username');
+            $password = config('services.sunsync.password');
+            
+            if (empty($username) || empty($password)) {
+                Log::error('SunSync get inverter info failed: Missing credentials');
+                return null;
+            }
+            
+            $authResult = $this->authenticate($username, $password);
+            if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
+                Log::error('SunSync get inverter info failed: Authentication failed');
+                return null;
+            }
         }
 
         // Convert to string if it's an integer
@@ -177,6 +240,23 @@ class SunSyncService
 
             $response = Http::withToken($this->accessToken)
                 ->get($this->baseUrl . "/api/v1/plant/{$plantId}/inverters", $requestData);
+                
+            // If we get an unauthorized response, try to re-authenticate once
+            if ($response->status() === 401) {
+                Log::info('SunSync access token expired, re-authenticating for inverter info');
+                $username = config('services.sunsync.username');
+                $password = config('services.sunsync.password');
+                
+                $authResult = $this->authenticate($username, $password);
+                if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
+                    Log::error('SunSync get inverter info failed: Re-authentication failed');
+                    return null;
+                }
+                
+                // Try the request again with the new token
+                $response = Http::withToken($this->accessToken)
+                    ->get($this->baseUrl . "/api/v1/plant/{$plantId}/inverters", $requestData);
+            }
 
             // Store request details with masked sensitive data
             $this->apiRequests['inverter_info'] = $this->maskSensitiveData([
@@ -191,7 +271,10 @@ class SunSyncService
                 $data = $response->json();
                 return $data['data']['infos'][0] ?? null;
             }
-            Log::error('SunSync get inverter info failed: API request failed');
+            Log::error('SunSync get inverter info failed: API request failed', [
+                'status' => $response->status(),
+                'response' => $response->json()
+            ]);
             return null;
         } catch (\Exception $e) {
             Log::error('SunSync get inverter info failed', [
@@ -203,9 +286,22 @@ class SunSyncService
 
     public function getInverterSettings($inverterSn): ?array
     {
+        // Attempt to authenticate if token is missing
         if (!$this->accessToken) {
-            Log::error('SunSync get inverter settings failed: No access token');
-            return null;
+            Log::info('SunSync access token missing, attempting to authenticate for inverter settings');
+            $username = config('services.sunsync.username');
+            $password = config('services.sunsync.password');
+            
+            if (empty($username) || empty($password)) {
+                Log::error('SunSync get inverter settings failed: Missing credentials');
+                return null;
+            }
+            
+            $authResult = $this->authenticate($username, $password);
+            if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
+                Log::error('SunSync get inverter settings failed: Authentication failed');
+                return null;
+            }
         }
 
         // Convert to string if it's not already
@@ -219,6 +315,23 @@ class SunSyncService
 
             $response = Http::withToken($this->accessToken)
                 ->get($this->baseUrl . "/api/v1/common/setting/{$inverterSn}/read", $requestData);
+                
+            // If we get an unauthorized response, try to re-authenticate once
+            if ($response->status() === 401) {
+                Log::info('SunSync access token expired, re-authenticating for inverter settings');
+                $username = config('services.sunsync.username');
+                $password = config('services.sunsync.password');
+                
+                $authResult = $this->authenticate($username, $password);
+                if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
+                    Log::error('SunSync get inverter settings failed: Re-authentication failed');
+                    return null;
+                }
+                
+                // Try the request again with the new token
+                $response = Http::withToken($this->accessToken)
+                    ->get($this->baseUrl . "/api/v1/common/setting/{$inverterSn}/read", $requestData);
+            }
 
             // Store request details with masked sensitive data
             $this->apiRequests['inverter_settings'] = $this->maskSensitiveData([
@@ -240,7 +353,10 @@ class SunSyncService
                 
                 return $settings;
             }
-            Log::error('SunSync get inverter settings failed: API request failed');
+            Log::error('SunSync get inverter settings failed: API request failed', [
+                'status' => $response->status(),
+                'response' => $response->json()
+            ]);
             return null;
         } catch (\Exception $e) {
             Log::error('SunSync get inverter settings failed', [
@@ -294,9 +410,22 @@ class SunSyncService
 
     public function updateSystemModeSettings(string $inverterSn, array $settings): bool
     {
+        // Attempt to authenticate if token is missing
         if (!$this->accessToken) {
-            Log::error('SunSync update system mode settings failed: No access token');
-            return false;
+            Log::info('SunSync access token missing, attempting to authenticate for updating settings');
+            $username = config('services.sunsync.username');
+            $password = config('services.sunsync.password');
+            
+            if (empty($username) || empty($password)) {
+                Log::error('SunSync update system mode settings failed: Missing credentials');
+                return false;
+            }
+            
+            $authResult = $this->authenticate($username, $password);
+            if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
+                Log::error('SunSync update system mode settings failed: Authentication failed');
+                return false;
+            }
         }
 
         try {
@@ -307,11 +436,64 @@ class SunSyncService
                 return false;
             }
 
+            // Check if specific settings have changed
+            $hasChanges = false;
+            
+            // Only check the specific settings we care about (sn, sellTime5, cap5, time5on)
+            $keysToCheck = ['sn', 'sellTime5', 'cap5', 'time5on'];
+            
+            foreach ($keysToCheck as $key) {
+                if (!isset($settings[$key])) {
+                    continue;
+                }
+                
+                $newValue = $settings[$key];
+                $currentValue = $currentSettings[$key] ?? null;
+                
+                // Handle boolean vs string "false" comparison
+                if ($key === 'time5on') {
+                    // Normalize both values to boolean for comparison
+                    $newValueBool = is_bool($newValue) ? $newValue : $newValue === 'true' || $newValue === '1' || $newValue === 1;
+                    $currentValueBool = is_bool($currentValue) ? $currentValue : $currentValue === 'true' || $currentValue === '1' || $currentValue === 1;
+                    
+                    if ($newValueBool !== $currentValueBool) {
+                        $hasChanges = true;
+                        Log::info("SunSync setting {$key} changed: " . json_encode($currentValueBool) . " -> " . json_encode($newValueBool));
+                    }
+                } else if ($newValue !== $currentValue) {
+                    $hasChanges = true;
+                    Log::info("SunSync setting {$key} changed: {$currentValue} -> {$newValue}");
+                }
+            }
+            
+            // If no changes, return success without making API call
+            if (!$hasChanges) {
+                Log::info('SunSync update not needed - no setting changes detected');
+                return true;
+            }
+
             // Merge new settings with existing settings
             $mergedSettings = array_merge($currentSettings, $settings);
 
             $response = Http::withToken($this->accessToken)
                 ->post($this->baseUrl . "/api/v1/common/setting/{$inverterSn}/set", $mergedSettings);
+                
+            // If we get an unauthorized response, try to re-authenticate once
+            if ($response->status() === 401) {
+                Log::info('SunSync access token expired, re-authenticating for updating settings');
+                $username = config('services.sunsync.username');
+                $password = config('services.sunsync.password');
+                
+                $authResult = $this->authenticate($username, $password);
+                if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
+                    Log::error('SunSync update system mode settings failed: Re-authentication failed');
+                    return false;
+                }
+                
+                // Try the request again with the new token
+                $response = Http::withToken($this->accessToken)
+                    ->post($this->baseUrl . "/api/v1/common/setting/{$inverterSn}/set", $mergedSettings);
+            }
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -320,6 +502,7 @@ class SunSyncService
                 if ($success) {
                     // Update cached settings after successful API call
                     \App\Models\SunSyncSetting::updateSettings($inverterSn, $mergedSettings);
+                    Log::info('SunSync settings updated successfully');
                 }
                 
                 return $success;

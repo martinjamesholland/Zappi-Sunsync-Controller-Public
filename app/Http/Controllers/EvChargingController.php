@@ -11,9 +11,11 @@ use App\Services\DataMaskingService;
 use App\Models\SunSyncSetting;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Http;
 
 class EvChargingController extends Controller
 {
@@ -34,7 +36,7 @@ class EvChargingController extends Controller
         $this->dataMaskingService = $dataMaskingService;
     }
 
-    public function updateSystemMode(): View|JsonResponse
+    public function updateSystemMode(): View|JsonResponse|Response
     {
         $logs = [];
         $apiCalls = [];
@@ -132,7 +134,7 @@ class EvChargingController extends Controller
         ];
 
         // Try to get cached settings first
-        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->subMinutes(4))
+        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->subMinutes(1))
             ->latest()
             ->first();
 
@@ -155,7 +157,31 @@ class EvChargingController extends Controller
             
             if (!$plantInfo) {
                 $logs[] = "Error: Failed to get plant information";
-                return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get SunSync plant information. Please check your SunSync credentials in Settings.');
+                
+                // Add diagnostic information
+                try {
+                    // Check if we can access the API at all
+                    $testResponse = Http::timeout(10)->get('https://api.sunsynk.net/status');
+                    if ($testResponse->successful()) {
+                        $logs[] = "Debug: SunSync API appears to be online but authentication may have failed";
+                    } else {
+                        $logs[] = "Debug: SunSync API appears to be offline or unreachable (HTTP " . $testResponse->status() . ")";
+                    }
+                } catch (\Exception $e) {
+                    $logs[] = "Debug: SunSync API connection error: " . $e->getMessage();
+                }
+                
+                // Check credentials
+                $username = config('services.sunsync.username');
+                $logs[] = "Debug: SunSync username is " . (empty($username) ? "empty" : "configured");
+                
+                // Suggest solutions
+                $logs[] = "Troubleshooting steps:";
+                $logs[] = "1. Check your internet connection";
+                $logs[] = "2. Verify SunSync credentials in Settings";
+                $logs[] = "3. Try again later as the API might be temporarily unavailable";
+                
+                return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get SunSync plant information. Please check your SunSync credentials in Settings or try again later.');
             }
 
             $inverterInfo = $this->sunSyncService->getInverterInfo($plantInfo['id']);
@@ -233,11 +259,42 @@ class EvChargingController extends Controller
             return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get current SunSync settings. Please check your SunSync credentials in Settings.');
         }
 
+        // Check if the specific settings (sn, sellTime5, cap5, time5on) are different
+        $settingsChanged = false;
+        
+        // Compare serial number
+        if ($inverterSn !== ($apiCurrentSettings['sn'] ?? '')) {
+            $settingsChanged = true;
+            $logs[] = "Serial number mismatch: {$inverterSn} vs " . ($apiCurrentSettings['sn'] ?? 'not set');
+        }
+        
+        // Compare sellTime5
+        if ($newSettings['sellTime5'] !== ($apiCurrentSettings['sellTime5'] ?? '')) {
+            $settingsChanged = true;
+            $logs[] = "Sell time mismatch: {$newSettings['sellTime5']} vs " . ($apiCurrentSettings['sellTime5'] ?? 'not set');
+        }
+        
+        // Compare cap5
+        if ($newSettings['cap5'] !== ($apiCurrentSettings['cap5'] ?? '')) {
+            $settingsChanged = true;
+            $logs[] = "Cap mismatch: {$newSettings['cap5']} vs " . ($apiCurrentSettings['cap5'] ?? 'not set');
+        }
+        
+        // Compare time5on with special handling for boolean vs string values
+        $newTime5onValue = $newSettings['time5on'];
+        $currentTime5onValue = $apiCurrentSettings['time5on'] ?? false;
+        
+        // Normalize both to boolean for comparison
+        $newTime5onBool = is_bool($newTime5onValue) ? $newTime5onValue : ($newTime5onValue === 'true' || $newTime5onValue === '1' || $newTime5onValue === 1);
+        $currentTime5onBool = is_bool($currentTime5onValue) ? $currentTime5onValue : ($currentTime5onValue === 'true' || $currentTime5onValue === '1' || $currentTime5onValue === 1);
+        
+        if ($newTime5onBool !== $currentTime5onBool) {
+            $settingsChanged = true;
+            $logs[] = "Time5on mismatch: " . ($newTime5onBool ? 'true' : 'false') . " vs " . ($currentTime5onBool ? 'true' : 'false');
+        }
+
         // Update settings if they have changed
-        if ($newSettings['sellTime5'] !== $apiCurrentSettings['sellTime5'] ||
-            $newSettings['cap5'] !== $apiCurrentSettings['cap5'] ||
-            $newSettings['time5on'] !== $apiCurrentSettings['time5on']) {
-            
+        if ($settingsChanged) {
             // Only send the settings we're changing
             $updateSettings = [
                 'sn' => $inverterSn,
@@ -245,6 +302,12 @@ class EvChargingController extends Controller
                 'cap5' => $newSettings['cap5'],
                 'time5on' => $newSettings['time5on']  // Will be boolean true or string "false"
             ];
+            
+            $logs[] = "Settings have changed, updating...";
+            $logs[] = "- sn: " . $inverterSn . " (current: " . ($apiCurrentSettings['sn'] ?? 'not set') . ")";
+            $logs[] = "- sellTime5: " . $newSettings['sellTime5'] . " (current: " . ($apiCurrentSettings['sellTime5'] ?? 'not set') . ")";
+            $logs[] = "- cap5: " . $newSettings['cap5'] . " (current: " . ($apiCurrentSettings['cap5'] ?? 'not set') . ")";
+            $logs[] = "- time5on: " . ($newSettings['time5on'] ? 'true' : 'false') . " (current: " . (($apiCurrentSettings['time5on'] ?? false) ? 'true' : 'false') . ")";
             
             $success = $this->sunSyncService->updateSystemModeSettings($inverterSn, $updateSettings);
             $apiCalls[] = [
@@ -256,12 +319,16 @@ class EvChargingController extends Controller
             $logs[] = "Settings update " . ($success ? "successful" : "failed");
             return $this->handleResponse($isCronMode, $logs, $apiCalls, $success);
         } else {
-            $logs[] = "No settings update needed - values already match";
+            $logs[] = "No settings update needed - all values already match:";
+            $logs[] = "- sn: " . $inverterSn;
+            $logs[] = "- sellTime5: " . $newSettings['sellTime5'];
+            $logs[] = "- cap5: " . $newSettings['cap5'];
+            $logs[] = "- time5on: " . ($newTime5onBool ? 'true' : 'false');
             return $this->handleResponse($isCronMode, $logs, $apiCalls, true);
         }
     }
 
-    public function updateSettings(): View|JsonResponse|RedirectResponse
+    public function updateSettings(): View|JsonResponse|RedirectResponse|Response
     {
         // Get current settings first
         $currentSettings = $this->settingsService->getSettings();
@@ -298,6 +365,25 @@ class EvChargingController extends Controller
         $success = $this->settingsService->updateSettings($settings);
 
         if (request()->has('cron_mode')) {
+            // Check if plain text output is requested
+            if (request()->input('format') !== 'json') {
+                $timestamp = now()->format('Y-m-d H:i:s');
+                $textOutput = "=== EV CHARGING SETTINGS UPDATE: {$timestamp} ===\n\n";
+                $textOutput .= "Status: " . ($success ? "SUCCESS" : "FAILED") . "\n";
+                $textOutput .= "Message: " . ($success ? "Settings updated successfully" : "Failed to update settings") . "\n\n";
+                $textOutput .= "Current Settings:\n";
+                
+                foreach ($this->settingsService->getSettings() as $key => $value) {
+                    $textOutput .= "- {$key}: {$value}\n";
+                }
+                
+                $textOutput .= "\n========== END OF REPORT ==========\n";
+                
+                return response($textOutput, $success ? 200 : 400)
+                    ->header('Content-Type', 'text/plain');
+            }
+            
+            // Default JSON response
             return response()->json([
                 'success' => $success,
                 'message' => $success ? 'Settings updated successfully' : 'Failed to update settings',
@@ -310,7 +396,7 @@ class EvChargingController extends Controller
                   $success ? 'Settings updated successfully' : 'Failed to update settings');
     }
 
-    private function handleResponse(bool $isCronMode, array $logs, array $apiCalls, bool $success, ?string $errorMessage = null): View|JsonResponse
+    private function handleResponse(bool $isCronMode, array $logs, array $apiCalls, bool $success, ?string $errorMessage = null): View|JsonResponse|Response
     {
         // Mask sensitive data in API calls
         $maskedApiCalls = [];
@@ -324,6 +410,41 @@ class EvChargingController extends Controller
         }
         
         if ($isCronMode) {
+            // Check if plain text output is requested (default for cron mode)
+            if (request()->input('format') !== 'json') {
+                // Create a plain text output
+                $timestamp = now()->format('Y-m-d H:i:s');
+                $textOutput = "=== EV CHARGING STATUS UPDATE: {$timestamp} ===\n\n";
+                $textOutput .= "Status: " . ($success ? "SUCCESS" : "FAILED") . "\n";
+                
+                if ($errorMessage) {
+                    $textOutput .= "Error: {$errorMessage}\n";
+                }
+                
+                $textOutput .= "\n--- LOGS ---\n";
+                foreach ($logs as $log) {
+                    $textOutput .= $log . "\n";
+                }
+                
+                $textOutput .= "\n--- API CALLS ---\n";
+                foreach ($maskedApiCalls as $index => $call) {
+                    $textOutput .= ($index + 1) . ". " . ($call['name'] ?? 'API Call') . "\n";
+                    $textOutput .= "   Endpoint: " . ($call['endpoint'] ?? 'Unknown') . "\n";
+                    if (isset($call['response']) && !empty($call['response'])) {
+                        $textOutput .= "   Response: Success\n";
+                    } else {
+                        $textOutput .= "   Response: Empty or Failed\n";
+                    }
+                    $textOutput .= "\n";
+                }
+                
+                $textOutput .= "========== END OF REPORT ==========\n";
+                
+                return response($textOutput, $success ? 200 : 400)
+                    ->header('Content-Type', 'text/plain');
+            }
+            
+            // Default JSON response (backwards compatibility)
             return response()->json([
                 'success' => $success,
                 'message' => $errorMessage,
