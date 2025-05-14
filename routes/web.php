@@ -6,15 +6,14 @@ use App\Http\Controllers\SunSyncController;
 use App\Http\Controllers\EvChargingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AppKeySetupController;
+use App\Http\Controllers\HomeController;
 
 // App Key Setup Routes - These should be first to handle missing app key
 Route::get('/setup/app-key', [AppKeySetupController::class, 'show'])->name('app.key.setup');
 Route::post('/setup/app-key/generate', [AppKeySetupController::class, 'generate'])->name('app.key.generate');
 
 // Other routes
-Route::get('/', function () {
-    return view('home');
-});
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/zappi/status', [ZappiController::class, 'status'])->name('zappi.status');
 
