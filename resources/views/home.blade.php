@@ -256,15 +256,17 @@
                                 </div>
 
                                 <!-- Home Load Node -->
-                                <div class="energy-node" style="position: absolute; bottom: 25px; left: 65%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                <div class="energy-node" style="position: absolute; bottom: 10px; left: 65%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
                                     <img src="{{ asset('images/icons/house.png') }}" alt="Home Load" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">Home</div>
-                                    <div class="energy-value">{{ number_format( $sunSyncData['homeLoadPower']-$zappiData['zappi'][0]['div'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value">{{ number_format($zappiData['zappi'][0]['grd'] + $zappiData['zappi'][0]['gen']  ?? 0, 0) }}W</div>
+                                    <div class="energy-percentage" style="font-size: 0.6em;">As of: {{ isset($zappiData['zappi'][0]['gen']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->diffForHumans() : 'N/A' }}</div>
+                               
                                 </div>
 
                                 <!-- Combined Load Node -->
                                 <div class="energy-node inverter-node" style="position: absolute; top: 250px; left: 50%; transform: translateX(-50%); z-index: 10; width: 90px; text-align: center;">
-                                    <div class="energy-value" style="background-color: #f0f0f0; padding: 5px; border-radius: 5px;">{{ number_format($sunSyncData['upsLoadPower'] ?? 0, 0) +  number_format($sunSyncData['smartLoadPower'] ?? 0, 0)  +  number_format($sunSyncData['homeLoadPower'] ?? 0, 0) -  number_format($zappiData['zappi'][0]['div'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value" style="background-color:#f0f0f0; padding: 5px; border-radius: 5px;">{{ number_format($sunSyncData['upsLoadPower']  + $sunSyncData['smartLoadPower'] + $zappiData['zappi'][0]['grd'] + $zappiData['zappi'][0]['gen'] ?? 0, 0) }}W</div>
                                 </div>
 
                                 <!-- Right Side Nodes -->
