@@ -31,6 +31,7 @@ A comprehensive Laravel-based web application for managing solar battery systems
   - Consumption analytics
   - Real-time power flow visualization
 
+
 ## Visual Examples
 
 Below are screenshots of the main dashboard and features:
@@ -52,6 +53,17 @@ Below are screenshots of the main dashboard and features:
 
 ### API & Settings
 ![API & Settings](public/images/settings.png)
+
+## What's New in the Home Dashboard
+
+The Home Dashboard now features a redesigned combined energy flow visualization, integrating SunSync inverter and Zappi charger data into a single, clear diagram. This update improves clarity, responsiveness, and real-time feedback for all major energy sources and loads in your system.
+
+![New Home Dashboard Flow](public/images/dashboard-home-newflow.png)
+
+- Unified energy flow for PV, battery, grid, UPS, smart load, home, Zappi, and EV
+- Responsive SVG-based layout for all screen sizes
+- Real-time status and power values for each node
+- Improved accessibility and visual clarity
 
 ## Technology Stack
 
