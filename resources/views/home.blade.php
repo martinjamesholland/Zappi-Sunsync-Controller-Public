@@ -5,10 +5,13 @@
 @section('content')
 
 @php
-    if($zappiData['zappi'][0]['grd'] < 20 & $zappiData['zappi'][0]['grd'] > -20){
+    if($zappiData['zappi'][0]['grd'] < 25 & $zappiData['zappi'][0]['grd'] > -25){
         $zappiData['zappi'][0]['grd'] = 0;
     }
-@endphp 
+    if($sunSyncData['gridOrMeterPower'] < 25 & $sunSyncData['gridOrMeterPower'] > -25){
+        $sunSyncData['gridOrMeterPower'] = 0;
+    }
+@endphp
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-12">
@@ -23,11 +26,35 @@
                         <!-- Main Header Section -->
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h2>Combined Energy Flow</h2>
+                            <div class="form-check form-switch ms-2" style="margin-bottom: 0;">
+                                <input class="form-check-input" type="checkbox" id="ssValueToggle">
+                                <label class="form-check-label" for="ssValueToggle" style="user-select:none;">Show All SunSync values</label>
+                            </div>
                         </div>
                         <div class="card-body">
                             <!-- Description Section -->
                             <div class="mb-3">
-                                <p class="text-muted">This diagram combines SunSync inverter and Zappi charger information into a single energy flow visualization.</p>
+                                <p class="text-muted mb-2">
+                                    This diagram combines SunSync inverter and Zappi charger information into a single energy flow visualization.
+                                </p>
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <span class="energy-percentage d-inline-flex align-items-center px-2 py-1 rounded" style="font-size: 0.95em; background: #e3fcec; color: #008939;">
+                                        <i class="bi bi-ev-station me-1"></i>
+                                        <strong>Zappi Data</strong>
+                                        <span class="js-relative-time ms-1"
+                                            data-timestamp="{{ isset($zappiData['zappi'][0]['gen']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->toIso8601String() : '' }}">
+                                            As of: {{ isset($zappiData['zappi'][0]['gen']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->diffForHumans() : 'N/A' }}
+                                        </span>
+                                    </span>
+                                    <span class="energy-percentage d-inline-flex align-items-center px-2 py-1 rounded" style="font-size: 0.95em; background: #fff8e1; color: #fbb428;">
+                                        <i class="bi bi-sun me-1"></i>
+                                        <strong>SunSync Data</strong>
+                                        <span class="js-relative-time ms-1"
+                                            data-timestamp="{{ isset($plantInfo['updateAt']) ? \Carbon\Carbon::parse($plantInfo['updateAt'])->setTimezone('Europe/London')->toIso8601String() : '' }}">
+                                            As of: {{ isset($plantInfo['updateAt']) ? \Carbon\Carbon::parse($plantInfo['updateAt'])->setTimezone('Europe/London')->diffForHumans() : 'N/A' }}
+                                        </span>
+                                    </span>
+                                </div>
                             </div>
                             @if(empty($sunSyncData) || !isset($sunSyncData['pv']))
                                 <div class="alert alert-warning">
@@ -203,11 +230,8 @@
 
                                 <!-- Node Definitions -->
                                 <!-- Central Inverter Node -->
-                                <div id="inverter-node" class="energy-node inverter-node" style="position: absolute; top: 105px; left: 50%; transform: translateX(-50%); z-index: 10; width: 150px; text-align: center;">
-                                    <div class="energy-percentage js-relative-time" style="font-size: 0.6em;"
-                                        data-timestamp="{{ isset($plantInfo['updateAt']) ? \Carbon\Carbon::parse($plantInfo['updateAt'])->setTimezone('Europe/London')->toIso8601String() : '' }}">
-                                        As of: {{ isset($plantInfo['updateAt']) ? \Carbon\Carbon::parse($plantInfo['updateAt'])->setTimezone('Europe/London')->diffForHumans() : 'N/A' }}
-                                    </div>
+                                <div id="inverter-node" class="energy-node inverter-node" style="position: absolute; top: 125px; left: 50%; transform: translateX(-50%); z-index: 10; width: 150px; text-align: center;">
+                                    
                                     <div class="energy-node-label">Inverter</div>
                                     <img src="{{ asset('images/icons/inverter.png') }}" alt="Inverter" style="width: 70px; height: 70px;">
                                 </div>
@@ -217,7 +241,7 @@
                                 <div id="pv1-node" class="energy-node" style="position: absolute; top: 50px; left: 5%; transform: translateX(-50%); z-index: 3; width: 70px; text-align: center;">
                                     <img src="{{ asset('images/icons/solar-panel.png') }}" alt="Solar Panel" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">PV1</div>
-                                    <div class="energy-value">{{ number_format($sunSyncData['pv'][0]['power'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['pv'][0]['power'] ?? 0, 0) }}W</div>
                                 </div>
 
                                 <!-- PV2 Node (Conditional) -->
@@ -225,52 +249,54 @@
                                 <div id="pv2-node" class="energy-node" style="position: absolute; top: 200px; left: 5%; transform: translateX(-50%); z-index: 3; width: 70px; text-align: center;">
                                     <img src="{{ asset('images/icons/solar-panel.png') }}" alt="Solar Panel 2" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">PV2</div>
-                                    <div class="energy-value">{{ number_format($sunSyncData['pv'][1]['power'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['pv'][1]['power'] ?? 0, 0) }}W</div>
                                 </div>
                                 @endif
 
                                 <!-- PV Combined Power Node -->
                                 <div id="pv-combined-power-node" class="energy-node inverter-node" style="position: absolute; top: 150px; left: 25%; transform: translateX(-50%); z-index: 10; width: 90px; text-align: center;">
-                                    <div class="energy-value">{{ number_format($sunSyncData['pv'][0]['power']+$sunSyncData['pv'][1]['power'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['pv'][0]['power']+$sunSyncData['pv'][1]['power'] ?? 0, 0) }}W</div>
                                 </div>
 
                                 <!-- Bottom Row Nodes -->
                                 <!-- Battery Node -->
-                                <div id="battery-node" class="energy-node" style="position: absolute; bottom: 0px; left: 20%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                <div id="battery-node" class="energy-node" style="position: absolute; top: 370px; left: 20%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
                                     <img src="{{ asset('images/icons/battery.png') }}" alt="Battery" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">Battery</div>
-                                    <div class="energy-value">{{ number_format($sunSyncData['battPower'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['battPower'] ?? 0, 0) }}W</div>
                                     <div class="energy-percentage" style="top: -83px;position: relative;left: -40px;{{ ($sunSyncData['soc'] ?? 0) == 100 ? 'color: #66bb6a; font-weight: bold;' : (($sunSyncData['soc'] ?? 0) <= 20 ? 'color: #f44336; font-weight: bold;' : '') }}">{{ number_format($sunSyncData['soc'] ?? 0, 0) }}%</div>
                                 </div>
 
                                 <!-- UPS Node -->
-                                <div id="ups-node" class="energy-node" style="position: absolute; bottom: 25px; left: 35%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                <div id="ups-node" class="energy-node" style="position: absolute; top: 370px; left: 35%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
                                     <img src="{{ asset('images/icons/ups.png') }}" alt="UPS Load" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">UPS</div>
-                                    <div class="energy-value">{{ number_format($sunSyncData['upsLoadPower'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['upsLoadPower'] ?? 0, 0) }}W</div>
                                 </div>
 
                                 <!-- Smart Load Node -->
-                                <div id="smart-load-node" class="energy-node" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                <div id="smart-load-node" class="energy-node" style="position: absolute; top: 370px; left: 50%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
                                     <img src="{{ asset('images/icons/smart-device.png') }}" alt="Smart Load" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label" style="font-size: 0.6em;">Smart Load<br>(Water Heater)</div>
-                                    <div class="energy-value">{{ number_format($sunSyncData['smartLoadPower'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['smartLoadPower'] ?? 0, 0) }}W</div>
                                 </div>
 
                                 <!-- Home Load Node -->
-                                <div id="home-load-node" class="energy-node" style="position: absolute; bottom: 10px; left: 65%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                <div id="home-load-node" class="energy-node" style="position: absolute; top: 370px; left: 65%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
                                     <img src="{{ asset('images/icons/house.png') }}" alt="Home Load" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">Home</div>
-                                    <div class="energy-value">{{ number_format($zappiData['zappi'][0]['grd'] + $zappiData['zappi'][0]['gen']  ?? 0, 0) }}W</div>
-                                    <div class="energy-percentage js-relative-time" style="font-size: 0.6em;"
-                                        data-timestamp="{{ isset($zappiData['zappi'][0]['gen']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->toIso8601String() : '' }}">
-                                        As of: {{ isset($zappiData['zappi'][0]['gen']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->diffForHumans() : 'N/A' }}
-                                    </div>
+                                    <div class="energy-value-ss" style="font-size: 0.6em; color:rgb(251 180 40)">{{ number_format($sunSyncData['homeLoadPower'] - $zappiData['zappi'][0]['div'] ?? 0, 0) }}W</div>
+                                    <div class="energy-value" style="color:rgb(0 137 57);">{{ number_format($zappiData['zappi'][0]['grd'] + $zappiData['zappi'][0]['gen']  ?? 0, 0) }}W</div>
+                                    
                                 </div>
 
                                 <!-- Combined Load Node -->
-                                <div id="combined-load" class="energy-node inverter-node" style="position: absolute; top: 210px; left: 50%; transform: translateX(-50%); z-index: 10; width: 90px; text-align: center;">
-                                    <div id="combined-load-value" class="energy-value" style="background-color:#f0f0f0; padding: 5px; border-radius: 5px;">{{ number_format($sunSyncData['upsLoadPower']  + $sunSyncData['smartLoadPower'] + $zappiData['zappi'][0]['grd'] + $zappiData['zappi'][0]['gen'] ?? 0, 0) }}W</div>
+                                <div id="combined-load" class="energy-node inverter-node" style="position: absolute; top: 210px; left: 50%; transform: translateX(-50%); z-index: 10; width: 70px; text-align: center;">
+                                    <div id="combined-load-value" class="energy-value" style="background-color:#fcfcfc; padding: 2px; border-radius: 5px;">
+                                        <div class="energy-value-ss" style="font-size: 0.7em; color:rgb(251 180 40);">{{ number_format($sunSyncData['upsLoadPower']  + $sunSyncData['smartLoadPower'] + $sunSyncData['homeLoadPower'] - $zappiData['zappi'][0]['div'] ?? 0, 0) }}W</div>
+                                    
+                                        {{ number_format($sunSyncData['upsLoadPower']  + $sunSyncData['smartLoadPower'] + $zappiData['zappi'][0]['grd'] + $zappiData['zappi'][0]['gen'] ?? 0, 0) }}W
+                                    </div>
                                 </div>
 
                                 <!-- Right Side Nodes -->
@@ -278,22 +304,15 @@
                                 <div id="grid-node" class="energy-node" style="position: absolute;  top: 50px; left: 82.14%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
                                     <img src="{{ asset('images/icons/power-grid.png') }}" alt="Power Grid" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">Grid</div>
-                                    <div class="energy-value">{{ number_format(abs($zappiData['zappi'][0]['grd'] ?? 0), 0) }}W</div>
-                                    <div class="energy-percentage js-relative-time" style="font-size: 0.6em;"
-                                        data-timestamp="{{ isset($zappiData['zappi'][0]['dat']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->toIso8601String() : '' }}">
-                                        As of: {{ isset($zappiData['zappi'][0]['dat']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->diffForHumans() : 'N/A' }}
-                                    </div>
+                                    <div class="energy-value-ss" style="font-size: 0.6em; color:rgb(251 180 40)">{{ number_format(abs($sunSyncData['gridOrMeterPower'] ?? 0), 0) }}W</div>
+                                    <div class="energy-value" style="color:rgb(0 137 57);">{{ number_format(abs($zappiData['zappi'][0]['grd'] ?? 0), 0) }}W</div>
                                 </div>
 
                                 <!-- Zappi Node -->
-                                <div id="zappi-node" class="energy-node" style="position: absolute; bottom: 65px; left: 85%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                <div id="zappi-node" class="energy-node" style="position: absolute; top: 300px; left: 85%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
                                     <img src="{{ asset('images/icons/ev-charger.png') }}" alt="Zappi Charger" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">Zappi</div>
-                                    <div class="energy-value">{{ number_format($zappiData['zappi'][0]['div'] ?? 0, 0) }}W</div>
-                                    <div class="energy-percentage js-relative-time" style="font-size: 0.6em;"
-                                        data-timestamp="{{ isset($zappiData['zappi'][0]['dat']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->toIso8601String() : '' }}">
-                                        As of: {{ isset($zappiData['zappi'][0]['dat']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappiData['zappi'][0]['dat'] . ' ' . $zappiData['zappi'][0]['tim'], 'UTC')->timezone('Europe/London')->diffForHumans() : 'N/A' }}
-                                    </div>
+                                    <div class="energy-value" style="color:rgb(0 137 57);">{{ number_format($zappiData['zappi'][0]['div'] ?? 0, 0) }}W</div>
                                 </div>
 
                                 @php
@@ -322,7 +341,7 @@
                                 @endphp
 
                                 <!-- Car Node (Bottom Row Slot 7) -->
-                                <div id="car-node" class="energy-node" style="position: absolute; bottom: 44px; left: 99%; transform: translateX(-50%); z-index: 3; width: 70px; text-align: center;">
+                                <div id="car-node" class="energy-node" style="position: absolute; top: 300px; left: 99%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
                                     <img src="{{ asset('images/icons/car.png') }}" alt="Car" style="width: 50px; height: 50px;">
                                     <div class="energy-node-label">Car</div>
                                     <div class="energy-value" style="font-size: 0.6em;">{{ $evStatusMap[$zappiData['zappi'][0]['pst']]['text'] ?? 'Unknown' }}
@@ -330,12 +349,13 @@
                                     {{ $zappiModeMap[$zappiData['zappi'][0]['zmo']]['text'] ?? 'Unknown' }}
                                     <br> 
                                     {{ $statusMap[$zappiData['zappi'][0]['sta']] ?? 'Unknown' }}  </div>
-                                </div>
-
-                                <!-- Car Consumption Node -->
-                                <div id="car-consumption-node" class="energy-node" style="position: absolute; bottom: 5px; left: 99%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                    <!-- Car Consumption Node -->
+                                <div id="car-consumption-node" class="energy-node" style=>
                                     <div class="energy-percentage" style="font-size: 0.6em;">Last Consumption: {{ number_format($zappiData['zappi'][0]['che'] ?? 0, 2) }} kWh</div>
                                 </div>
+                                </div>
+
+                                
                             </div>
                         </div>
                     </div>
@@ -446,13 +466,14 @@
         font-size: 0.85em;
         color: #555;
     }
-    
+    .energy-value-ss {
+        color:#6ec6f6 !important; /* Light pastel blue */
+    }
     /* Add styles for animated paths */
     .path-line {
         stroke-dasharray: 5,5;
         transition: stroke 0.3s ease;
     }
-    
     /* Arrow marker styles */
     marker polygon {
         transition: fill 0.3s ease;
@@ -496,14 +517,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set base viewBox
         svg.setAttribute('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
+        console.log(containerWidth);
 
-        // Handle large screens (>699px)
-        if (containerWidth > 699) {
+        // Handle large screens (>580px)
+        if (containerWidth > 580) {
             // Set fixed values for large screens
             container.style.minHeight = `500px`;
             container.style.top = `0px`;
             svg.setAttribute('viewBox', `0 0 ${baseWidth} ${baseHeight}`);
-            
+
             // Combined load element styling
             document.querySelector('#combined-load').style.top = '220px';
             document.querySelector('#combined-load').style.width = '90px';
@@ -511,11 +533,11 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelector('#combined-load-value').style.lineHeight = '18px';
             document.querySelector('#combined-load-value').style.padding = '5px';
             document.querySelector('#combined-energy-flow').style.minHeight = '500px';
-            
+
             // Path coordinates for large screens
             document.querySelector('#path-car-to-zappi').setAttribute('d', 'M 620 350 L 625 350 L 650 350 L 660 350');
             document.querySelector('#path-zappi-to-grid').setAttribute('d', 'M 500 175 L 500 350 L 550 350 L 570 350');
-            
+
             // Font sizes for large screens
             document.querySelectorAll('.energy-node-label').forEach(label => {
                 label.style.fontSize = '0.9em';
@@ -526,27 +548,69 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.energy-percentage').forEach(percentage => {
                 percentage.style.fontSize = '0.6em';
             });
-            
+
             // Battery node specific styling
             document.querySelector('#battery-node .energy-percentage').style.fontSize = '0.9em';
             document.querySelector('#battery-node .energy-percentage').style.top = '-83px';
             document.querySelector('#battery-node .energy-percentage').style.left = '-40px';
-            
+
             // Smart Load node specific styling
             document.querySelector('#smart-load-node .energy-node-label').style.fontSize = '0.6em';
-            
+
             // Node positioning for large screens
+            document.querySelector('#zappi-node').style.top = '300px';
+            document.querySelector('#car-node').style.top = '300px';
+            document.querySelector('#zappi-node').style.left = '85%';
             document.querySelector('#grid-node').style.top = '50px';
             document.querySelector('#pv1-node').style.top = '50px';
-            document.querySelector('#zappi-node').style.left = '85%';
+            document.querySelector('#inverter-node').style.top = '125px';
+            document.querySelector('#battery-node').style.top = '370px';
+            document.querySelector('#ups-node').style.top = '370px';
+            document.querySelector('#smart-load-node').style.top = '370px';
+            document.querySelector('#home-load-node').style.top = '370px';
+            document.querySelector('#pv2-node').style.top = '200px';
         }
+
+        if (containerWidth < 580) {
+            svg.setAttribute('viewBox', `0 -50 ${baseWidth} ${baseHeight}`);
+            document.querySelector('#pv-combined-power-node').style.top = '120px';
+        }
+
+        if (containerWidth < 530) {
+            document.querySelector('#ups-node').style.top = '320px';
+            document.querySelector('#smart-load-node').style.top = '320px';
+            document.querySelector('#home-load-node').style.top = '320px';
+            document.querySelector('#zappi-node').style.top = '280px';
+            document.querySelector('#car-node').style.top = '280px';
+            document.querySelector('#battery-node').style.top = '320px';
+            document.querySelector('#inverter-node').style.top = '110px';
+        }
+
+        if (containerWidth < 510) {
+            document.querySelector('#grid-node').style.top = '50px';
+            document.querySelector('#pv1-node').style.top = '50px';
+            document.querySelector('#battery-node').style.top = '300px';
+            document.querySelector('#ups-node').style.top = '300px';
+            document.querySelector('#smart-load-node').style.top = '300px';
+            document.querySelector('#home-load-node').style.top = '300px';
+            document.querySelector('#pv2-node').style.top = '190px';
+            document.querySelector('#inverter-node').style.top = '110px';
+            document.querySelector('#zappi-node').style.top = '260px';
+            document.querySelector('#car-node').style.top = '260px';
+        }
+
+        if (containerWidth < 483) {
+            svg.setAttribute('viewBox', `0 -80 ${baseWidth} ${baseHeight}`);
+            document.querySelector('#zappi-node').style.top = '230px';
+            document.querySelector('#car-node').style.top = '230px';
+        }
+
         // Handle small screens (<350px)
-        else if (containerWidth < 350) {
-            // Set fixed values for small screens
+        if (containerWidth < 350) {
             container.style.minHeight = `320px`;
             container.style.top = `-100px`;
             svg.setAttribute('viewBox', `0 -180 ${baseWidth} ${baseHeight}`);
-            
+
             // Combined load element styling
             document.querySelector('#combined-load').style.top = '185px';
             document.querySelector('#combined-load').style.width = '60px';
@@ -554,11 +618,11 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelector('#combined-load-value').style.lineHeight = '10px';
             document.querySelector('#combined-load-value').style.padding = '1px';
             document.querySelector('#combined-energy-flow').style.minHeight = '330px';
-            
+
             // Path coordinates for small screens
             document.querySelector('#path-car-to-zappi').setAttribute('d', 'M 600 300 L 625 300 L 640 300 L 650 300');
             document.querySelector('#path-zappi-to-grid').setAttribute('d', 'M 500 175 L 500 300 L 530 300 L 535 300');
-            
+
             // Font sizes for small screens
             document.querySelectorAll('.energy-node-label').forEach(label => {
                 label.style.fontSize = '0.5em';
@@ -569,119 +633,32 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.energy-percentage').forEach(percentage => {
                 percentage.style.fontSize = '0.3em';
             });
-            
+
             // Battery node specific styling
             document.querySelector('#battery-node .energy-percentage').style.fontSize = '0.6em';
             document.querySelector('#battery-node .energy-percentage').style.top = '-43px';
             document.querySelector('#battery-node .energy-percentage').style.left = '5px';
-            
+
             // Smart Load node specific styling
             document.querySelector('#smart-load-node .energy-node-label').style.fontSize = '0.4em';
 
             // Zappi node specific styling
-            //document.querySelector('#zappi-node').style.bottom = '35px';
-
-            // Car node specific styling
-            //document.querySelector('#car-node').style.bottom = '20px';
+            document.querySelector('#zappi-node').style.top = '200px';
+            document.querySelector('#car-node').style.top = '200px';
             document.querySelector('#car-consumption-node').style.width = '50px';
-           
-            
+            document.querySelector('#zappi-node').style.left = '80%';
+
             // Node positioning for small screens
             document.querySelector('#grid-node').style.top = '90px';
             document.querySelector('#pv1-node').style.top = '90px';
-            document.querySelector('#zappi-node').style.left = '80%';
+            document.querySelector('#battery-node').style.top = '220px';
+            document.querySelector('#ups-node').style.top = '220px';
+            document.querySelector('#smart-load-node').style.top = '220px';
+            document.querySelector('#home-load-node').style.top = '220px';
+            document.querySelector('#pv2-node').style.top = '175px';
+            document.querySelector('#inverter-node').style.top = '110px';
         }
-        // Handle medium screens (350px - 699px) with dynamic calculations
-        else {
-            const minWidth = 350;
-            const maxWidth = 699;
-            const range = maxWidth - minWidth;
-            const normalizedWidth = (containerWidth - minWidth) / range;
-            const viewBoxOffset = -180 + (normalizedWidth * 180); // -180 to 0
-            const topOffset = -100 + (normalizedWidth * 100); // -100 to 0
-
-            svg.setAttribute('viewBox', `0 ${viewBoxOffset} ${baseWidth} ${baseHeight}`);
-            //container.style.minHeight = `320px`;
-            //container.style.top = `-100px`;
-        }
-       /* else {
-            // Calculate normalization factor for dynamic scaling
-            const minWidth = 350;
-            const maxWidth = 699;
-            const range = maxWidth - minWidth;
-            const normalizedWidth = (containerWidth - minWidth) / range;
-
-            // Calculate container dimensions and positioning
-            const minHeight = 320 + (normalizedWidth * 180); // 320 to 500
-            const topOffset = -100 + (normalizedWidth * 100); // -100 to 0
-            const viewBoxOffset = -180 + (normalizedWidth * 180); // -180 to 0
-            const energyFlowMinHeight = 330 + (normalizedWidth * 170); // 330 to 500
-
-            // Calculate combined load element properties
-            const combinedLoadTop = 185 + (normalizedWidth * 35); // 185 to 220
-            const combinedLoadWidth = 60 + (normalizedWidth * 30); // 60 to 90
-            const fontSize = 10 + (normalizedWidth * 3); // 10 to 13
-            const lineHeight = 10 + (normalizedWidth * 8); // 10 to 18
-            const padding = 1 + (normalizedWidth * 4); // 1 to 5
-
-            // Calculate path coordinates
-            const carPathX = 600 + (normalizedWidth * 55); // 600 to 655
-            const carPathY = 300 + (normalizedWidth * 110); // 300 to 410
-            const zappiPathY = 300 + (normalizedWidth * 110); // 300 to 410
-
-            // Calculate font sizes
-            const labelFontSize = 0.5 + (normalizedWidth * 0.55); // 0.5 to 1.05
-            const valueFontSize = 0.4 + (normalizedWidth * 0.55); // 0.4 to 0.95
-            const percentageFontSize = 0.3 + (normalizedWidth * 0.55); // 0.3 to 0.85
-            const batteryPercentageFontSize = 0.6 + (normalizedWidth * 0.55); // 0.6 to 1.15
-
-            // Calculate position adjustments
-            const batteryPercentageTop = -43 - (normalizedWidth * 40); // -43 to -83
-            const batteryPercentageLeft = 5 - (normalizedWidth * 45); // 5 to -40
-            const gridNodeTop = 90 - (normalizedWidth * 45); // 90 to 45
-            const pv1NodeTop = 90 - (normalizedWidth * 45); // 90 to 45
-            const zappiNodeLeft = 80 + (normalizedWidth * 11); // 80 to 91
-
-            // Apply container and viewBox settings
-            container.style.minHeight = `${minHeight}px`;
-            container.style.top = `${topOffset}px`;
-            svg.setAttribute('viewBox', `0 ${viewBoxOffset} ${baseWidth} ${baseHeight}`);
-            document.querySelector('#combined-energy-flow').style.minHeight = `${energyFlowMinHeight}px`;
-
-            // Apply combined load element styling
-            document.querySelector('#combined-load').style.top = `${combinedLoadTop}px`;
-            document.querySelector('#combined-load').style.width = `${combinedLoadWidth}px`;
-            document.querySelector('#combined-load-value').style.fontSize = `${fontSize}px`;
-            document.querySelector('#combined-load-value').style.lineHeight = `${lineHeight}px`;
-            document.querySelector('#combined-load-value').style.padding = `${padding}px`;
-
-            // Update SVG paths
-            document.querySelector('#path-car-to-zappi').setAttribute('d', 
-                `M ${carPathX} ${carPathY} L ${carPathX + 25} ${carPathY} L ${carPathX + 40} ${carPathY} L ${carPathX + 50} ${carPathY}`);
-            document.querySelector('#path-zappi-to-grid').setAttribute('d', 
-                `M 500 175 L 500 ${zappiPathY} L 500 ${zappiPathY} L 500 ${zappiPathY}`);
-
-            // Apply font sizes to all elements
-            document.querySelectorAll('.energy-node-label').forEach(label => {
-                label.style.fontSize = `${labelFontSize}em`;
-            });
-            document.querySelectorAll('.energy-value').forEach(value => {
-                value.style.fontSize = `${valueFontSize}em`;
-            });
-            document.querySelectorAll('.energy-percentage').forEach(percentage => {
-                percentage.style.fontSize = `${percentageFontSize}em`;
-            });
-
-            // Apply battery node specific styling
-            document.querySelector('#battery-node .energy-percentage').style.fontSize = `${batteryPercentageFontSize}em`;
-            document.querySelector('#battery-node .energy-percentage').style.top = `${batteryPercentageTop}px`;
-            document.querySelector('#battery-node .energy-percentage').style.left = `${batteryPercentageLeft}px`;
-
-            // Apply node positioning
-            document.querySelector('#grid-node').style.top = `${gridNodeTop}px`;
-            document.querySelector('#pv1-node').style.top = `${pv1NodeTop}px`;
-            document.querySelector('#zappi-node').style.left = `${zappiNodeLeft}%`;
-        }*/
+       
         
         // Adjust image sizes based on their type
         document.querySelectorAll('.energy-node img').forEach(img => {
@@ -782,5 +759,32 @@ function updateRelativeTimes() {
 }
 setInterval(updateRelativeTimes, 1000);
 document.addEventListener('DOMContentLoaded', updateRelativeTimes);
+
+// SS value toggle logic
+const SS_TOGGLE_KEY = 'showSSValues';
+function setSSValuesVisible(visible) {
+    document.querySelectorAll('.energy-value-ss').forEach(el => {
+        el.style.display = visible ? '' : 'none';
+    });
+    localStorage.setItem(SS_TOGGLE_KEY, visible ? '1' : '0');
+}
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+    // SS value toggle
+    const ssToggle = document.getElementById('ssValueToggle');
+    const ssSaved = localStorage.getItem(SS_TOGGLE_KEY);
+    if (ssSaved === '1') {
+        ssToggle.checked = true;
+        setSSValuesVisible(true);
+    } else {
+        ssToggle.checked = false;
+        setSSValuesVisible(false);
+    }
+    ssToggle.addEventListener('change', function() {
+        setSSValuesVisible(ssToggle.checked);
+    });
+});
+
+
 </script>
 @endsection 
