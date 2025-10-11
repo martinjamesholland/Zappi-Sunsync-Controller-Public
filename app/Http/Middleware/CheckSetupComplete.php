@@ -28,8 +28,8 @@ class CheckSetupComplete
             return redirect()->route('setup.index');
         }
 
-        // Check if APP_KEY is set
-        if (empty(config('app.key'))) {
+        // Check if APP_KEY and API_KEY are set
+        if (empty(config('app.key')) || empty(config('services.api.key'))) {
             return redirect()->route('setup.app-key');
         }
 

@@ -280,21 +280,25 @@ adjustViewBox();
     
     // First, fetch available dates to ensure datepicker is ready
     fetchAvailableDates().then(() => {
-        // After dates are loaded, apply saved state
-        if (savedTimeframe === 'custom' && savedCustomDate) {
-            // If we had a custom date saved, switch to custom view
-            activateTimeframe('custom');
-            // Show the datepicker
-            document.getElementById('customDatePicker').style.display = 'block';
-            // Set the date in the input
-            $('#datePicker').val(savedCustomDate);
-            // Load data for that date
-            fetchEnergyFlowData('custom', savedCustomDate);
-        } else {
-            // Otherwise load the saved timeframe
-            activateTimeframe(savedTimeframe);
-           // fetchEnergyFlowData(savedTimeframe);
-        }
+        // Wait for D3 chart to be fully initialized before loading data
+        // This prevents race conditions between chart creation and data loading
+        setTimeout(() => {
+            // After dates are loaded and chart is ready, apply saved state
+            if (savedTimeframe === 'custom' && savedCustomDate) {
+                // If we had a custom date saved, switch to custom view
+                activateTimeframe('custom');
+                // Show the datepicker
+                document.getElementById('customDatePicker').style.display = 'block';
+                // Set the date in the input
+                $('#datePicker').val(savedCustomDate);
+                // Load data for that date
+                fetchD3EnergyFlowData('custom', savedCustomDate);
+            } else {
+                // Otherwise load the saved timeframe
+                activateTimeframe(savedTimeframe);
+                fetchD3EnergyFlowData(savedTimeframe);
+            }
+        }, 500); // 500ms delay to ensure D3 chart is fully initialized
     });
 
     // Add event listeners for timeframe buttons
@@ -361,6 +365,16 @@ function activateTimeframe(timeframe) {
 // Modify fetchAvailableDates to return a Promise for better control flow
 async function fetchAvailableDates() {
     try {
+        // Check if jQuery is loaded
+        if (typeof jQuery === 'undefined' || typeof $ === 'undefined') {
+            console.error('jQuery is not loaded yet, retrying in 500ms...');
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    fetchAvailableDates().then(resolve);
+                }, 500);
+            });
+        }
+        
         const response = await fetch('api/energy-flow/available-dates');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -1217,7 +1231,7 @@ function createD3EnergyFlowChart() {
 
     // Create axes
     const xAxis = d3.axisBottom(xScale)
-        .tickFormat(d3.timeFormat('%H:%M'));
+        .tickFormat(d3.timeFormat('%b %d, %H:%M'));
 
     const yAxis = d3.axisLeft(yScale)
         .tickFormat(d => `${d}W`);
@@ -1229,7 +1243,12 @@ function createD3EnergyFlowChart() {
     svg.append('g')
         .attr('class', 'x-axis')
         .attr('transform', `translate(0,${height})`)
-        .call(xAxis);
+        .call(xAxis)
+        .selectAll('text')
+        .style('text-anchor', 'end')
+        .attr('dx', '-.8em')
+        .attr('dy', '.15em')
+        .attr('transform', 'rotate(-45)');
 
     svg.append('g')
         .attr('class', 'y-axis')
@@ -1404,6 +1423,13 @@ function saveDatasetVisibility() {
 
 async function fetchD3EnergyFlowData(timeframe = '24h', customDate = null) {
     try {
+        // Check if D3 chart is initialized, if not, wait a bit and try again
+        if (!d3Chart) {
+            console.warn('D3 chart not yet initialized, waiting 500ms...');
+            setTimeout(() => fetchD3EnergyFlowData(timeframe, customDate), 500);
+            return;
+        }
+        
         //console.log('Fetching D3 energy flow data for timeframe:', timeframe, 'customDate:', customDate);
         let url = `api/energy-flow/history?timeframe=${timeframe}`;
         if (customDate) {
@@ -1606,7 +1632,13 @@ function updateD3Chart() {
     ////console.log('Y-scale-right domain:', [socMin, socMax]);
 
     // Update axes
-    svg.select('.x-axis').call(d3.axisBottom(xScale).tickFormat(d3.timeFormat('%H:%M')));
+    svg.select('.x-axis')
+        .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat('%b %d, %H:%M')))
+        .selectAll('text')
+        .style('text-anchor', 'end')
+        .attr('dx', '-.8em')
+        .attr('dy', '.15em')
+        .attr('transform', 'rotate(-45)');
     svg.select('.y-axis').call(d3.axisLeft(yScale).tickFormat(d => `${d/1000} kW`));
     svg.select('.y-axis-right').call(d3.axisRight(yScaleRight).tickFormat(d => `${d}%`));
 
@@ -1768,19 +1800,29 @@ function updateD3Chart() {
 document.addEventListener('DOMContentLoaded', function() {
     //console.log('DOM loaded, initializing D3 chart...');
     
-    // Check if D3.js is loaded
-    if (typeof d3 === 'undefined') {
-        console.error('D3.js is not loaded!');
-        return;
-    }
-    
-    // Initialize D3 chart instead of Chart.js
-    try {
-        createD3EnergyFlowChart();
-        //console.log('D3 chart initialized successfully');
-    } catch (error) {
-        console.error('Error initializing D3 chart:', error);
-    }
+    // Wait a bit for all scripts to be fully loaded
+    setTimeout(() => {
+        // Check if D3.js is loaded
+        if (typeof d3 === 'undefined') {
+            console.error('D3.js is not loaded!');
+            return;
+        }
+        
+        // Check if chart container exists
+        const container = document.getElementById('d3-energy-flow-chart');
+        if (!container) {
+            console.error('D3 chart container not found');
+            return;
+        }
+        
+        // Initialize D3 chart instead of Chart.js
+        try {
+            createD3EnergyFlowChart();
+            //console.log('D3 chart initialized successfully');
+        } catch (error) {
+            console.error('Error initializing D3 chart:', error);
+        }
+    }, 200); // Small delay to ensure all resources are loaded
     
     // Add resize handler for responsive chart
     let resizeTimeout;

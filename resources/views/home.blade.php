@@ -3,15 +3,34 @@
 @section('title', 'Home - Solar Battery EV Charger')
 
 @section('content')
+
+@php
+    if($zappiData['zappi'][0]['grd'] < 25 & $zappiData['zappi'][0]['grd'] > -25){
+        $zappiData['zappi'][0]['grd'] = 0;
+    }
+    if($sunSyncData['gridOrMeterPower'] < 25 & $sunSyncData['gridOrMeterPower'] > -25){
+        $sunSyncData['gridOrMeterPower'] = 0;
+    }
+@endphp
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-12">
             <div class="row">
-            <div class="col-md-12">
-                            <h1 class="fs-4">Welcome to Solar, Battery & EV Charger Collaboration</h1>
+                <div class="col-md-12">
+                    <h1 class="fs-4">Welcome to Solar, Battery & EV Charger Collaboration</h1>
+                </div>
+                
+                <!-- Combined Energy Flow Card -->
+                <div id="combined-energy-flow" class="col-12 mb-4">
+                    <div class="card">
+                        <!-- Main Header Section -->
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h2>Combined Energy Flow</h2>
+                            <div class="form-check form-switch ms-2" style="margin-bottom: 0;">
+                                <input class="form-check-input" type="checkbox" id="ssValueToggle">
+                                <label class="form-check-label" for="ssValueToggle" style="user-select:none;">Show All SunSync values</label>
+                            </div>
                         </div>
-<<<<<<< Updated upstream
-=======
                         <!-- Data Flow Card -->
                         <div class="card-body">
                             <!-- Description Section -->
@@ -434,7 +453,6 @@
                     </div>
                 </div>
 
->>>>>>> Stashed changes
                 <!-- Zappi Card -->
                 <div class="col-md-6 mb-4">
                     <div class="card shadow-sm h-100">
@@ -515,8 +533,6 @@
         </div>
     </div>
 </div>
-<<<<<<< Updated upstream
-=======
 <div class="d-flex justify-content-end align-items-center text-muted" style="font-size: 0.85em; margin-bottom: -1.5rem; gap: 0.5rem;">
     <i class="bi bi-arrow-clockwise"></i>
     <span id="auto-refresh-status">Auto-refresh enabled (every 1 minute)</span>
@@ -538,5 +554,4 @@
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
 <script src="{{ asset('js/home.js') }}"></script>
->>>>>>> Stashed changes
 @endsection 

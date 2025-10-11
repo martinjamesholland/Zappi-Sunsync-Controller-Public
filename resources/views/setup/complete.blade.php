@@ -15,7 +15,7 @@
     <div class="step-indicator">
         <div class="step completed">
             <div class="step-circle"><i class="bi bi-check"></i></div>
-            <span class="step-label">APP KEY</span>
+            <span class="step-label">Security Keys</span>
         </div>
         <div class="step completed">
             <div class="step-circle"><i class="bi bi-check"></i></div>
@@ -51,7 +51,7 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <!-- APP KEY Status -->
+                <!-- Security Keys Status -->
                 <div class="col-md-6">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
@@ -61,7 +61,7 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-1">Application Key</h6>
+                            <h6 class="mb-1">Security Keys</h6>
                             <small class="text-muted">
                                 @if($setupStatus['app_key'])
                                     <i class="bi bi-check-circle-fill text-success"></i> Configured
@@ -198,7 +198,7 @@
             <p class="mb-2 mt-2">Some components are not fully configured:</p>
             <ul class="mb-0">
                 @if(!$setupStatus['app_key'])
-                    <li>Application Key is missing</li>
+                    <li>Security Keys (APP_KEY and API_KEY) are missing</li>
                 @endif
                 @if(!$setupStatus['database'])
                     <li>Database is not configured</li>

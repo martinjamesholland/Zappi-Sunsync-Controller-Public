@@ -20,11 +20,6 @@ This application is a **unified energy management platform** that integrates mul
 ✅ **Remote Control** - Manage your system from anywhere via the web interface  
 ✅ **Unified Dashboard** - One place to monitor all your energy systems instead of multiple apps  
 
-<<<<<<< Updated upstream
-## Visual Examples
-
-Below are screenshots of the main dashboard and features:
-=======
 ---
 
 ## 📸 Screenshots & Features
@@ -43,7 +38,6 @@ The home dashboard provides a comprehensive real-time view of your entire energy
 
 ### Zappi EV Charger Status
 Monitor and control your EV charging:
->>>>>>> Stashed changes
 
 ![Zappi Status](public/images/zappi-status-new.png)
 
@@ -71,19 +65,6 @@ Detailed monitoring of your solar inverter and battery system:
 ### EV Charging Control
 Intelligent EV charging management based on solar generation:
 
-<<<<<<< Updated upstream
-## Technology Stack
-
-- **Backend**: Laravel 10.x
-- **Frontend**: Bootstrap 5, JavaScript
-- **Database**: MySQL
-- **Real-time Updates**: Laravel WebSockets
-- **Authentication**: Laravel Sanctum
-- **API**: RESTful API architecture
-- **External Integrations**: 
-  - SunSync API
-  - Zappi API
-=======
 ![EV Charging Status](public/images/ev-charging-status-new.png)
 
 **Features:**
@@ -106,7 +87,6 @@ Secure configuration management:
 - Database connection configuration
 - Step-by-step guidance for obtaining credentials
 - All passwords and keys are masked for security
->>>>>>> Stashed changes
 
 ---
 
@@ -448,9 +428,6 @@ php artisan view:cache
 
 The system uses an optimized database structure for efficient energy data logging:
 
-<<<<<<< Updated upstream
-## API Integrations
-=======
 ### Key Features
 
 - **Compressed row format** - Reduces storage space by up to 50%
@@ -478,7 +455,6 @@ The database is designed to handle:
 ## 🔌 API Integrations
 
 This application integrates with two external APIs to provide unified monitoring and control.
->>>>>>> Stashed changes
 
 ### SunSync API Integration
 

@@ -44,6 +44,9 @@ class EnergyFlowService
             $zappiGrd = $zappiData['zappi'][0]['grd'] ?? 0;
             $zappiGen = $zappiData['zappi'][0]['gen'] ?? 0;
 
+            // Calculate total load power (sum of all loads including Zappi)
+            $totalLoadPower = $upsLoadPower + $smartLoadPower + $zappiGrd + $zappiGen;
+
             $data = [
                 'pv1_power' => $sunSyncData['pv'][0]['power'] ?? 0,
                 'pv2_power' => $sunSyncData['pv'][1]['power'] ?? 0,
@@ -55,6 +58,7 @@ class EnergyFlowService
                 'ups_load_power' => $upsLoadPower,
                 'smart_load_power' => $smartLoadPower,
                 'home_load_power' => $zappiGrd + $zappiGen - $zappiDiv,
+                'total_load_power' => $totalLoadPower,
                 'home_load_sunsync' => $homeLoadPower - $zappiDiv,
                 'combined_load_node_sunsync' => $upsLoadPower + $smartLoadPower + $homeLoadPower - $zappiDiv,
                 'combined_load_node' => $upsLoadPower + $smartLoadPower + $zappiGrd + $zappiGen - $zappiDiv,

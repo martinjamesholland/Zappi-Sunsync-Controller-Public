@@ -21,7 +21,7 @@
                     1
                 @endif
             </div>
-            <span class="step-label">APP KEY</span>
+            <span class="step-label">Security Keys</span>
         </div>
         <div class="step {{ $setupStatus['database'] ? 'completed' : '' }}">
             <div class="step-circle">
@@ -71,10 +71,10 @@
             <div class="card h-100">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="bi bi-key-fill"></i> Application Key
+                        <i class="bi bi-key-fill"></i> Security Keys
                     </h5>
                     <p class="card-text text-muted small">
-                        Secure encryption key for your application
+                        Encryption and API keys for your application
                     </p>
                     @if($setupStatus['app_key'])
                         <span class="status-badge configured">

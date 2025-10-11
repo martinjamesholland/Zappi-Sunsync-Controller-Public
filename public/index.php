@@ -1,43 +1,43 @@
 <?php
 
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
-
-use Illuminate\Foundation\Application;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
-// Check if app key is missing
-$envFile = __DIR__ . '/../.env';
-$appKeyMissing = true;
-
-if (file_exists($envFile)) {
-    $envContent = file_get_contents($envFile);
-    if (preg_match('/^APP_KEY=base64:.+/m', $envContent)) {
-        $appKeyMissing = false;
-    }
-}
-
-if ($appKeyMissing) {
-    // Redirect to setup page
-    header('Location: setup.php');
-    exit;
-}
-
-// Continue with normal Laravel bootstrap
 define('LARAVEL_START', microtime(true));
 
-// Determine if the application is in maintenance mode...
+// Enable error reporting
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
+/*
+|--------------------------------------------------------------------------
+| Check If The Application Is Under Maintenance
+|--------------------------------------------------------------------------
+|
+| If the application is in maintenance / demo mode via the "down" command
+| we will load this file so that any pre-rendered content can be shown
+| instead of starting the framework, which could cause an exception.
+|
+*/
+
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;
 }
 
-// Register the Composer autoloader...
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| this application. We just need to utilize it! We'll simply require it
+| into the script here so we don't need to manually load our classes.
+|
+*/
+
 require __DIR__.'/../vendor/autoload.php';
 
-<<<<<<< Updated upstream
-// Bootstrap Laravel and handle the request...
-/** @var Application $app */
-=======
 /*
 |--------------------------------------------------------------------------
 | Check For Environment File
@@ -94,15 +94,12 @@ if (!file_exists(__DIR__.'/../.env')) {
 |
 */
 
->>>>>>> Stashed changes
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+$kernel = $app->make(Kernel::class);
 
 $response = $kernel->handle(
-    $request = Illuminate\Http\Request::capture()
-);
-
-$response->send();
+    $request = Request::capture()
+)->send();
 
 $kernel->terminate($request, $response);

@@ -15,6 +15,16 @@
                         </div>
                     @endif
 
+                    @if(isset($dbError))
+                        <div class="alert alert-danger">
+                            <h5>Database Connection Error</h5>
+                            <p>There was an error connecting to your database. Please update your database settings below:</p>
+                            <div class="mt-2 p-2 bg-light rounded">
+                                <code>{{ $dbError }}</code>
+                            </div>
+                        </div>
+                    @endif
+
                     <form method="POST" action="{{ route('settings.update') }}">
                         @csrf
                         @method('PUT')
@@ -138,6 +148,118 @@
                                     id="SUNSYNC_PASSWORD" name="SUNSYNC_PASSWORD" 
                                     placeholder="Enter your SunSync password">
                                 @error('SUNSYNC_PASSWORD')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Database Settings -->
+                        <div class="mb-4">
+                            <h4>Database Settings</h4>
+                            <div class="alert alert-info">
+                                <h5>Database Configuration Information:</h5>
+                                <p>These settings control how the application connects to your database. Make sure to use secure credentials and keep them private.</p>
+                            </div>
+
+                            <!-- Current Status -->
+                            <div class="mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Current Database Configuration</h5>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">Database Name:</span>
+                                            @if(env('DB_DATABASE'))
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">Host:</span>
+                                            @if(env('DB_HOST'))
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">Port:</span>
+                                            @if(env('DB_PORT'))
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="me-2">Username:</span>
+                                            @if(env('DB_USERNAME'))
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="me-2">Password:</span>
+                                            @if(env('DB_PASSWORD'))
+                                                <span class="badge bg-success">Configured</span>
+                                            @else
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="DB_DATABASE" class="form-label">Database Name</label>
+                                <input type="text" class="form-control @error('DB_DATABASE') is-invalid @enderror" 
+                                    id="DB_DATABASE" name="DB_DATABASE" 
+                                    placeholder="Enter database name"
+                                    value="{{ old('DB_DATABASE') }}">
+                                @error('DB_DATABASE')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="DB_HOST" class="form-label">Database Host</label>
+                                <input type="text" class="form-control @error('DB_HOST') is-invalid @enderror" 
+                                    id="DB_HOST" name="DB_HOST" 
+                                    placeholder="Enter database host (e.g., localhost)"
+                                    value="{{ old('DB_HOST') }}">
+                                @error('DB_HOST')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="DB_PORT" class="form-label">Database Port</label>
+                                <input type="text" class="form-control @error('DB_PORT') is-invalid @enderror" 
+                                    id="DB_PORT" name="DB_PORT" 
+                                    placeholder="Enter database port (e.g., 3306)"
+                                    value="{{ old('DB_PORT') }}">
+                                @error('DB_PORT')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="DB_USERNAME" class="form-label">Database Username</label>
+                                <input type="text" class="form-control @error('DB_USERNAME') is-invalid @enderror" 
+                                    id="DB_USERNAME" name="DB_USERNAME" 
+                                    placeholder="Enter database username"
+                                    value="{{ old('DB_USERNAME') }}">
+                                @error('DB_USERNAME')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="DB_PASSWORD" class="form-label">Database Password</label>
+                                <input type="password" class="form-control @error('DB_PASSWORD') is-invalid @enderror" 
+                                    id="DB_PASSWORD" name="DB_PASSWORD" 
+                                    placeholder="Enter database password">
+                                @error('DB_PASSWORD')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>

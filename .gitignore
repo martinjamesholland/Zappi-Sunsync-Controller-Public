@@ -31,3 +31,5 @@ yarn-error.log
 .cursor/.DS_Store
 .cursor/rules/.DS_Store
 /storage
+.DS_Store
+public/.DS_Store

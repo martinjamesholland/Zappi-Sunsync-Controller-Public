@@ -40,10 +40,13 @@ class SetupController extends Controller
     public function showAppKey()
     {
         $hasAppKey = !empty(config('app.key'));
+        $hasApiKey = !empty(config('services.api.key'));
         
         return view('setup.app-key', [
             'hasAppKey' => $hasAppKey,
-            'currentKey' => $hasAppKey ? config('app.key') : null
+            'currentKey' => $hasAppKey ? config('app.key') : null,
+            'hasApiKey' => $hasApiKey,
+            'currentApiKey' => $hasApiKey ? config('services.api.key') : null
         ]);
     }
 
@@ -61,9 +64,13 @@ class SetupController extends Controller
             // Generate new app key
             $appKey = $this->envService->generateAppKey();
             
-            // Update .env file
+            // Generate new API key (random 32-character string)
+            $apiKey = bin2hex(random_bytes(32));
+            
+            // Update .env file with both keys
             $success = $this->envService->update([
-                'APP_KEY' => $appKey
+                'APP_KEY' => $appKey,
+                'API_KEY' => $apiKey
             ]);
 
             if (!$success) {
@@ -75,8 +82,9 @@ class SetupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Application key generated successfully!',
-                'key' => $appKey
+                'message' => 'Application keys generated successfully!',
+                'app_key' => $appKey,
+                'api_key' => $apiKey
             ]);
         } catch (\Exception $e) {
             Log::error('APP_KEY generation failed', ['error' => $e->getMessage()]);
@@ -312,7 +320,7 @@ class SetupController extends Controller
     {
         return [
             'env_exists' => $this->envService->exists(),
-            'app_key' => !empty(config('app.key')),
+            'app_key' => !empty(config('app.key')) && !empty(config('services.api.key')),
             'database' => $this->isDatabaseConfigured(),
             'zappi' => !empty(config('myenergi.serial')) && !empty(config('myenergi.password')),
             'sunsync' => !empty(config('services.sunsync.username')) && !empty(config('services.sunsync.password')),

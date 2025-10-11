@@ -1,13 +1,13 @@
 @extends('layouts.setup')
 
-@section('title', 'APP KEY Setup - Solar Battery EV Charger')
+@section('title', 'Security Keys Setup - Solar Battery EV Charger')
 
 @section('content')
 <div class="setup-header">
     <h1 class="h2 mb-2">
-        <i class="bi bi-key-fill"></i> Step 1: Application Key
+        <i class="bi bi-key-fill"></i> Step 1: Security Keys
     </h1>
-    <p class="mb-0">Generate a secure encryption key for your application</p>
+    <p class="mb-0">Generate secure encryption and API keys for your application</p>
 </div>
 
 <div class="setup-body">
@@ -15,7 +15,7 @@
     <div class="step-indicator">
         <div class="step active">
             <div class="step-circle">1</div>
-            <span class="step-label">APP KEY</span>
+            <span class="step-label">Security Keys</span>
         </div>
         <div class="step">
             <div class="step-circle">2</div>
@@ -37,27 +37,54 @@
     <!-- Information -->
     <div class="alert alert-info">
         <i class="bi bi-info-circle-fill"></i>
-        <strong>What is an Application Key?</strong>
-        <p class="mb-0 mt-2">
-            The application key is used to encrypt session data and other sensitive information. 
-            It's essential for the security of your application. This key will be stored in your .env file.
-        </p>
+        <strong>What are these keys?</strong>
+        <div class="mt-2">
+            <p class="mb-2">
+                <strong>APP_KEY:</strong> Used to encrypt session data and other sensitive information. 
+                Essential for the security of your application.
+            </p>
+            <p class="mb-0">
+                <strong>API_KEY:</strong> Used to authenticate API endpoint calls for external integrations 
+                (e.g., cron jobs, webhooks). This ensures only authorized requests can trigger data updates.
+            </p>
+        </div>
     </div>
 
-    @if($hasAppKey)
+    @if($hasAppKey && $hasApiKey)
         <div class="alert alert-success">
             <i class="bi bi-check-circle-fill"></i>
-            <strong>Application Key Already Set</strong>
-            <p class="mb-2 mt-2">Your application already has an encryption key configured.</p>
-            <div class="font-monospace small text-break bg-light p-2 rounded">
-                {{ $currentKey }}
+            <strong>Keys Already Configured</strong>
+            <p class="mb-2 mt-2">Your application already has both encryption keys configured.</p>
+            <div class="mb-2">
+                <strong>APP_KEY:</strong>
+                <div class="font-monospace small text-break bg-light p-2 rounded">
+                    {{ $currentKey }}
+                </div>
             </div>
+            <div>
+                <strong>API_KEY:</strong>
+                <div class="font-monospace small text-break bg-light p-2 rounded">
+                    {{ $currentApiKey }}
+                </div>
+            </div>
+        </div>
+    @elseif($hasAppKey && !$hasApiKey)
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>API Key Missing</strong>
+            <p class="mb-0 mt-2">APP_KEY is configured, but API_KEY is missing. Click the button below to generate it.</p>
+        </div>
+    @elseif(!$hasAppKey && $hasApiKey)
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Application Key Missing</strong>
+            <p class="mb-0 mt-2">API_KEY is configured, but APP_KEY is missing. Click the button below to generate it.</p>
         </div>
     @else
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <strong>No Application Key Found</strong>
-            <p class="mb-0 mt-2">Click the button below to generate a new application key.</p>
+            <strong>No Keys Found</strong>
+            <p class="mb-0 mt-2">Click the button below to generate both application keys.</p>
         </div>
     @endif
 
@@ -95,6 +122,20 @@
                             @endif
                         </td>
                     </tr>
+                    <tr>
+                        <td><strong>API_KEY:</strong></td>
+                        <td>
+                            @if($hasApiKey)
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Configured
+                                </span>
+                            @else
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Not Set
+                                </span>
+                            @endif
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -104,10 +145,10 @@
     <div class="d-grid gap-2">
         <button type="button" id="generateKeyBtn" class="btn btn-primary btn-lg">
             <i class="bi bi-key"></i> 
-            {{ $hasAppKey ? 'Regenerate Application Key' : 'Generate Application Key' }}
+            {{ ($hasAppKey && $hasApiKey) ? 'Regenerate Application Keys' : 'Generate Application Keys' }}
         </button>
         
-        @if($hasAppKey)
+        @if($hasAppKey && $hasApiKey)
             <a href="{{ route('setup.database') }}" class="btn btn-success btn-lg">
                 <i class="bi bi-arrow-right-circle"></i> Continue to Database Setup
             </a>
@@ -118,10 +159,10 @@
         </a>
     </div>
 
-    @if($hasAppKey)
+    @if($hasAppKey || $hasApiKey)
         <div class="alert alert-warning mt-4 mb-0">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <strong>Warning:</strong> Regenerating the application key will invalidate all existing sessions and encrypted data.
+            <strong>Warning:</strong> Regenerating the keys will invalidate all existing sessions, encrypted data, and API authentication tokens.
         </div>
     @endif
 </div>
