@@ -26,3 +26,7 @@ yarn-error.log
 /.cursor
 /.cursor
 .DS_Store
+/.cursor
+/.cursor/rules
+.cursor/.DS_Store
+.cursor/rules/.DS_Store
