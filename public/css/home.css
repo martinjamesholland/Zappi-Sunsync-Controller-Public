@@ -1,0 +1,377 @@
+.energy-node {
+    /* Common styles for energy nodes */
+}
+.energy-node-label {
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-top: 2px;
+}
+.energy-value, .energy-percentage {
+    font-size: 0.85em;
+    color: #555;
+}
+.energy-value-ss {
+    color:#6ec6f6 !important; /* Light pastel blue */
+}
+/* Add styles for animated paths */
+.path-line {
+    stroke-dasharray: 5,5;
+    transition: stroke 0.3s ease;
+}
+/* Arrow marker styles */
+marker polygon {
+    transition: fill 0.3s ease;
+}
+
+/* Enhanced date picker styles */
+.datepicker-dropdown {
+    padding: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    font-family: inherit;
+}
+
+/* Improved header styling */
+.datepicker-days .datepicker-switch,
+.datepicker-days .prev,
+.datepicker-days .next {
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+/* Table styling */
+.datepicker table {
+    width: 100%;
+}
+
+.datepicker table tr th {
+    font-weight: 600;
+    border-radius: 0;
+    background-color: #f8f9fa;
+    color: #495057;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Day cell styling */
+.datepicker table tr td {
+    border-radius: 4px;
+    width: 35px;
+    height: 35px;
+    line-height: 35px;
+    font-weight: 500;
+}
+
+/* Active day styling */
+.datepicker table tr td.active,
+.datepicker table tr td.active:hover {
+    background-color: #3b82f6 !important;
+    background-image: none !important;
+    color: white !important;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Available days styling - more specific selectors */
+.datepicker table tr td.day:not(.disabled) {
+    font-weight: bold;
+    color: #3b82f6;
+}
+
+/* Disabled days styling - more specific selectors */
+.datepicker table tr td.day.disabled {
+    color: #999999 !important;
+    background-color: #f0f0f0 !important;
+    cursor: default !important;
+    text-decoration: line-through;
+}
+
+/* Today styling - more specific selectors */
+.datepicker table tr td.day.today:not(.disabled) {
+    background-color: #fff0c2 !important;
+    border: 1px solid #ffda6a;
+}
+
+/* Additional specificity for active date */
+.datepicker table tr td.day.active {
+    color: white !important;
+    background-color: #3b82f6 !important;
+    text-decoration: none !important;
+}
+
+/* Chart Container Styles */
+.chart-container {
+    height: 700px;
+    min-height: 350px;
+    overflow: hidden;
+    padding: 1rem;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 15px;
+    min-height: 30px;
+    border: 1px solid #eee;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.chart-area {
+    flex: 1;
+    width: 100%;
+    min-height: 300px;
+    position: relative;
+}
+
+/* D3.js Chart Styles */
+#d3-energy-flow-chart {
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.legend-item:hover {
+    opacity: 0.8 !important;
+}
+
+.legend-color {
+    width: 20px;
+    height: 3px;
+    margin-right: 8px;
+    border-radius: 1px;
+}
+
+.legend-label {
+    font-size: 12px;
+    color: #333;
+    user-select: none;
+}
+
+/* D3.js Chart SVG Styles */
+#d3-energy-flow-chart svg {
+    width: 100%;
+    height: 100%;
+}
+
+#d3-energy-flow-chart .x-axis line,
+#d3-energy-flow-chart .y-axis line,
+#d3-energy-flow-chart .y-axis-right line {
+    stroke: #ddd;
+}
+
+#d3-energy-flow-chart .x-axis path,
+#d3-energy-flow-chart .y-axis path,
+#d3-energy-flow-chart .y-axis-right path {
+    stroke: #333;
+}
+
+#d3-energy-flow-chart .x-axis text,
+#d3-energy-flow-chart .y-axis text,
+#d3-energy-flow-chart .y-axis-right text {
+    font-size: 11px;
+    fill: #666;
+}
+
+#d3-energy-flow-chart .x-label,
+#d3-energy-flow-chart .y-label,
+#d3-energy-flow-chart .y-label-right {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #333;
+}
+
+/* Tooltip Styles */
+.tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Line Path Styles */
+.line-path {
+    transition: stroke-width 0.2s ease;
+}
+
+.line-path:hover {
+    stroke-width: 3px !important;
+}
+
+/* EV Status Point Styles */
+.ev-point {
+    transition: r 0.2s ease;
+}
+
+.ev-point:hover {
+    cursor: pointer;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .card-header .btn-group {
+        flex-wrap: wrap;
+        gap: 2px;
+        max-width: 100%;
+    }
+    
+    .card-header .btn-group .btn {
+        margin-bottom: 2px;
+        flex: 0 0 auto;
+    }
+    .chart-container {
+        height: 700px;
+        min-height: 500px;
+        padding: 0.5rem;
+    }
+    
+    .chart-legend {
+        justify-content: flex-start;
+        gap: 8px;
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .legend-item {
+        margin-right: 10px;
+        margin-bottom: 6px;
+    }
+    
+    .legend-label {
+        font-size: 11px;
+    }
+    
+    .chart-area {
+        min-height: 250px;
+    }
+    
+    #d3-energy-flow-chart .x-axis text,
+    #d3-energy-flow-chart .y-axis text,
+    #d3-energy-flow-chart .y-axis-right text {
+        font-size: 10px;
+    }
+    
+    #d3-energy-flow-chart .x-label,
+    #d3-energy-flow-chart .y-label,
+    #d3-energy-flow-chart .y-label-right {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-header .btn-group .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.8rem;
+    }
+    
+    .chart-container {
+        height: 500px;
+        min-height: 400px;
+        padding: 0.25rem;
+    }
+    
+    .chart-legend {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 6px;
+        margin-bottom: 8px;
+    }
+    
+    .legend-item {
+        margin-right: 0;
+        margin-bottom: 4px;
+    }
+    
+    .legend-label {
+        font-size: 10px;
+    }
+    
+    .chart-area {
+        min-height: 200px;
+    }
+    
+    #d3-energy-flow-chart .x-axis text,
+    #d3-energy-flow-chart .y-axis text,
+    #d3-energy-flow-chart .y-axis-right text {
+        font-size: 9px;
+    }
+    
+    #d3-energy-flow-chart .x-label,
+    #d3-energy-flow-chart .y-label,
+    #d3-energy-flow-chart .y-label-right {
+        font-size: 10px;
+    }
+    
+    #customDatePicker {
+        margin-top: 10px !important;
+    }
+    
+    #customDatePicker .input-group {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 360px) {
+    .chart-container {
+        height: 450px;
+        min-height: 400px;
+    }
+    
+    .chart-area {
+        min-height: 180px;
+    }
+    
+    .legend-label {
+        font-size: 9px;
+    }
+    
+    .chart-legend {
+        max-height: 80px;
+        overflow-y: auto;
+        padding: 4px;
+    }
+    
+    .legend-item {
+        margin-bottom: 2px;
+    }
+    
+    .legend-color {
+        width: 15px;
+        height: 2px;
+    }
+}

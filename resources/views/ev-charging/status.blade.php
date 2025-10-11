@@ -25,52 +25,201 @@
                         </div>
                     @endif
 
+                    <!-- Time Slot Settings -->
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="card">
                                 <div class="card-header">
-                                    <h6 class="mb-0">Default Settings</h6>
+                                    <h6 class="mb-0">SunSync Time Slot Configuration</h6>
+                                    <small class="text-muted">Configure the 6 time slots that control battery charging and discharging</small>
                                 </div>
                                 <div class="card-body">
-                                    <form action="{{ route('ev-charging.settings.update') }}" method="POST" id="defaultSettingsForm">
+                                    <form action="{{ route('ev-charging.settings.update') }}" method="POST" id="timeSlotSettingsForm">
                                         @csrf
-                                        <div class="mb-3">
-                                            <label for="defaultSellTime" class="form-label">Default Sell Time</label>
-                                            <input type="time" class="form-control" id="defaultSellTime" name="default_sell_time" 
-                                                   value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['default_sell_time'])->format('H:i') }}">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Slot</th>
+                                                        <th>Time</th>
+                                                        <th>Battery Cap (%)</th>
+                                                        <th style="text-align: center;">Grid Charge</th>
+                                                        <th>Description</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td><strong>Slot 1</strong></td>
+                                                        <td>
+                                                            <input type="time" class="form-control form-control-sm" name="sell_time_1" 
+                                                                   value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['sell_time_1'] ?? '00:00')->format('H:i') }}">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" name="cap_1" 
+                                                                   value="{{ $settings['cap_1'] ?? '100' }}" min="0" max="100">
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <div class="form-check form-switch d-inline-block">
+                                                                <input class="form-check-input" type="checkbox" name="time_1_on" value="1" 
+                                                                       id="time1on" {{ ($settings['time_1_on'] ?? 'true') === 'true' || ($settings['time_1_on'] ?? 'true') === '1' ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="time1on">
+                                                                    <small>{{ ($settings['time_1_on'] ?? 'true') === 'true' || ($settings['time_1_on'] ?? 'true') === '1' ? 'ON' : 'OFF' }}</small>
+                                                                </label>
+                                                            </div>
+                                                        </td>
+                                                        <td><small class="text-muted">Midnight to early morning</small></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Slot 2</strong></td>
+                                                        <td>
+                                                            <input type="time" class="form-control form-control-sm" name="sell_time_2" 
+                                                                   value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['sell_time_2'] ?? '03:00')->format('H:i') }}">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" name="cap_2" 
+                                                                   value="{{ $settings['cap_2'] ?? '100' }}" min="0" max="100">
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <div class="form-check form-switch d-inline-block">
+                                                                <input class="form-check-input" type="checkbox" name="time_2_on" value="1" 
+                                                                       id="time2on" {{ ($settings['time_2_on'] ?? 'true') === 'true' || ($settings['time_2_on'] ?? 'true') === '1' ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="time2on">
+                                                                    <small>{{ ($settings['time_2_on'] ?? 'true') === 'true' || ($settings['time_2_on'] ?? 'true') === '1' ? 'ON' : 'OFF' }}</small>
+                                                                </label>
+                                                            </div>
+                                                        </td>
+                                                        <td><small class="text-muted">Early morning charging</small></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Slot 3</strong></td>
+                                                        <td>
+                                                            <input type="time" class="form-control form-control-sm" name="sell_time_3" 
+                                                                   value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['sell_time_3'] ?? '05:30')->format('H:i') }}">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" name="cap_3" 
+                                                                   value="{{ $settings['cap_3'] ?? '25' }}" min="0" max="100">
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <div class="form-check form-switch d-inline-block">
+                                                                <input class="form-check-input" type="checkbox" name="time_3_on" value="1" 
+                                                                       id="time3on" {{ ($settings['time_3_on'] ?? 'false') === 'true' || ($settings['time_3_on'] ?? 'false') === '1' ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="time3on">
+                                                                    <small>{{ ($settings['time_3_on'] ?? 'false') === 'true' || ($settings['time_3_on'] ?? 'false') === '1' ? 'ON' : 'OFF' }}</small>
+                                                                </label>
+                                                            </div>
+                                                        </td>
+                                                        <td><small class="text-muted">Dawn period</small></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Slot 4</strong></td>
+                                                        <td>
+                                                            <input type="time" class="form-control form-control-sm" name="sell_time_4" 
+                                                                   value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['sell_time_4'] ?? '08:00')->format('H:i') }}">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" name="cap_4" 
+                                                                   value="{{ $settings['cap_4'] ?? '25' }}" min="0" max="100">
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <div class="form-check form-switch d-inline-block">
+                                                                <input class="form-check-input" type="checkbox" name="time_4_on" value="1" 
+                                                                       id="time4on" {{ ($settings['time_4_on'] ?? 'false') === 'true' || ($settings['time_4_on'] ?? 'false') === '1' ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="time4on">
+                                                                    <small>{{ ($settings['time_4_on'] ?? 'false') === 'true' || ($settings['time_4_on'] ?? 'false') === '1' ? 'ON' : 'OFF' }}</small>
+                                                                </label>
+                                                            </div>
+                                                        </td>
+                                                        <td><small class="text-muted">Morning period</small></td>
+                                                    </tr>
+                                                    <tr class="table-warning">
+                                                        <td><strong>Slot 5</strong></td>
+                                                        <td>
+                                                            <input type="time" class="form-control form-control-sm" name="default_sell_time" 
+                                                                   value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['default_sell_time'])->format('H:i') }}">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" name="default_cap" 
+                                                                   value="{{ $settings['default_cap'] }}" min="0" max="100">
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <small class="text-muted">Auto</small>
+                                                        </td>
+                                                        <td><small class="text-muted"><strong>Primary EV charging slot</strong> (Auto-controlled)</small></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Slot 6</strong></td>
+                                                        <td>
+                                                            <input type="time" class="form-control form-control-sm" name="sell_time_6" 
+                                                                   value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['sell_time_6'] ?? '23:30')->format('H:i') }}">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control form-control-sm" name="cap_6" 
+                                                                   value="{{ $settings['cap_6'] ?? '100' }}" min="0" max="100">
+                                                        </td>
+                                                        <td style="text-align: center;">
+                                                            <div class="form-check form-switch d-inline-block">
+                                                                <input class="form-check-input" type="checkbox" name="time_6_on" value="1" 
+                                                                       id="time6on" {{ ($settings['time_6_on'] ?? 'true') === 'true' || ($settings['time_6_on'] ?? 'true') === '1' ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="time6on">
+                                                                    <small>{{ ($settings['time_6_on'] ?? 'true') === 'true' || ($settings['time_6_on'] ?? 'true') === '1' ? 'ON' : 'OFF' }}</small>
+                                                                </label>
+                                                            </div>
+                                                        </td>
+                                                        <td><small class="text-muted">Night period</small></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
                                         </div>
-                                        <div class="mb-3">
-                                            <label for="defaultCap" class="form-label">Default Cap (%)</label>
-                                            <input type="number" class="form-control" id="defaultCap" name="default_cap" 
-                                                   value="{{ $settings['default_cap'] }}" min="0" max="100">
-                                        </div>
-                                        <button type="submit" class="btn btn-primary btn-sm">Update Defaults</button>
+                                        <button type="submit" class="btn btn-primary">Save All Time Slots</button>
                                     </form>
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Night Time Range -->
+                    <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-header">
-                                    <h6 class="mb-0">Night Time Settings</h6>
+                                    <h6 class="mb-0">Night Time Range</h6>
+                                    <small class="text-muted">Define when the system considers it "night time"</small>
                                 </div>
                                 <div class="card-body">
                                     <form action="{{ route('ev-charging.settings.update') }}" method="POST" id="nightTimeForm">
                                         @csrf
-                                        <input type="hidden" name="default_sell_time" value="{{ $settings['default_sell_time'] }}">
-                                        <input type="hidden" name="default_cap" value="{{ $settings['default_cap'] }}">
                                         <div class="mb-3">
                                             <label for="nightStart" class="form-label">Night Start Time</label>
                                             <input type="time" class="form-control" id="nightStart" name="night_start" 
                                                    value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['night_start'])->format('H:i') }}">
+                                            <small class="form-text text-muted">When night mode begins</small>
                                         </div>
                                         <div class="mb-3">
                                             <label for="nightEnd" class="form-label">Night End Time</label>
                                             <input type="time" class="form-control" id="nightEnd" name="night_end" 
                                                    value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['night_end'])->format('H:i') }}">
+                                            <small class="form-text text-muted">When night mode ends</small>
                                         </div>
                                         <button type="submit" class="btn btn-primary btn-sm">Update Night Times</button>
                                     </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-info bg-opacity-10">
+                                <div class="card-header bg-info bg-opacity-25">
+                                    <h6 class="mb-0">ℹ️ How Time Slots Work</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="mb-0">
+                                        <li><strong>Time Slots</strong> control when and how much battery can be used</li>
+                                        <li><strong>Cap %</strong> sets the minimum battery level for each period</li>
+                                        <li><strong>Grid Charge</strong> ON = inverter CAN charge battery from grid during this time slot<br>
+                                            OFF = inverter CANNOT charge from grid (solar only)</li>
+                                        <li><strong>Slot 5</strong> is automatically adjusted when EV charges during daytime</li>
+                                        <li><strong>Night Time</strong> prevents EV charging adjustments during specified hours</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -154,7 +303,7 @@ No settings update needed - all values already match
                     </div>
 
                     <div class="mb-3">
-                        <strong>Last Updated:</strong> {{ now()->timezone('Europe/London')->format('Y-m-d H:i:s') }}
+                        <strong>Last Updated:</strong> <span id="status-timestamp">{{ now()->timezone('Europe/London')->format('Y-m-d H:i:s') }}</span>
                     </div>
 
                     <div class="log-container" style="max-height: 400px; overflow-y: auto;">
@@ -331,6 +480,19 @@ document.addEventListener('DOMContentLoaded', function() {
 // Clean up on page unload
 window.addEventListener('beforeunload', function() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+});
+
+// Update switch labels when toggled
+document.addEventListener('DOMContentLoaded', function() {
+    const switches = document.querySelectorAll('[id^="time"][id$="on"]');
+    switches.forEach(function(switchEl) {
+        switchEl.addEventListener('change', function() {
+            const label = this.nextElementSibling.querySelector('small');
+            if (label) {
+                label.textContent = this.checked ? 'ON' : 'OFF';
+            }
+        });
+    });
 });
 </script>
 @endsection 

@@ -9,6 +9,8 @@ use App\Services\SunSyncService;
 use App\Services\EvChargingSettingsService;
 use App\Services\DataMaskingService;
 use App\Models\SunSyncSetting;
+use App\Http\Requests\UpdateEvSettingsRequest;
+use App\Enums\ZappiStatus;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -94,14 +96,15 @@ class EvChargingController extends Controller
             }
 
             $zappi = $zappiStatus['zappi'][0];
-            $isCharging = ($zappi['pst'] ?? '') === 'C2';
+            $zappiStatusEnum = ZappiStatus::fromValueOrNull($zappi['pst'] ?? null);
+            $isCharging = $zappiStatusEnum?->isCharging() ?? false;
         }
         
         $logs[] = "EV Status: " . ($isCharging ? "Charging" : "Not Charging");
 
         // Check if current time is between night start and end times
-        $nightStart = $settings['night_start'] ?: '23:30';
-        $nightEnd = $settings['night_end'] ?: '05:30';
+        $nightStart = $settings['night_start'] ?: config('sunsync.defaults.night_start', '23:30');
+        $nightEnd = $settings['night_end'] ?: config('sunsync.defaults.night_end', '05:30');
         
         // Ensure time values are in correct format
         if (!preg_match('/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/', $nightStart)) {
@@ -128,16 +131,17 @@ class EvChargingController extends Controller
 
         // Define default values from settings
         $defaultSettings = [
-            'sellTime5' => $settings['default_sell_time'] ?: '22:00',
-            'cap5' => $settings['default_cap'] ?: '20',
+            'sellTime5' => $settings['default_sell_time'] ?: config('sunsync.defaults.sell_time', '22:00'),
+            'cap5' => $settings['default_cap'] ?: config('sunsync.defaults.cap', '20'),
             'time5on' => "false"
         ];
 
         // Try to get cached settings first
-        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->timezone('Europe/London')->subMinutes(1))
+        $cacheTtl = config('sunsync.cache.settings_ttl', 60);
+        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->timezone('Europe/London')->subSeconds($cacheTtl))
             ->latest()
             ->first();
-
+        
         if ($cachedRecord) {
             $currentSettings = $cachedRecord->settings;
             $inverterSn = $cachedRecord->inverter_sn;
@@ -228,7 +232,8 @@ class EvChargingController extends Controller
             // Check if current settings already match default values
             $isAlreadyDefault = $currentSettings['sellTime5'] === $defaultSettings['sellTime5'] &&
                                $currentSettings['cap5'] === $defaultSettings['cap5'] &&
-                               $currentSettings['time5on'] === $defaultSettings['time5on'];
+                               $currentSettings['time5on'] === $defaultSettings['time5on'] &&
+                               $currentSettings['sellTime2'] === '03:00';
 
             if ($isAlreadyDefault) {
                 $logs[] = "Settings already at default values, no update needed";
@@ -261,11 +266,19 @@ class EvChargingController extends Controller
 
         // Check if the specific settings (sn, sellTime5, cap5, time5on) are different
         $settingsChanged = false;
+
+      
         
         // Compare serial number
         if ($inverterSn !== ($apiCurrentSettings['sn'] ?? '')) {
             $settingsChanged = true;
             $logs[] = "Serial number mismatch: {$inverterSn} vs " . ($apiCurrentSettings['sn'] ?? 'not set');
+        }
+
+        // Compare sellTime2
+        if ('03:00' !== ($apiCurrentSettings['sellTime2'] ?? '')) {
+            $settingsChanged = true;
+            $logs[] = "Time 2 mismatch: 03:00 vs " . ($apiCurrentSettings['sellTime2'] ?? 'not set');
         }
         
         // Compare sellTime5
@@ -298,9 +311,56 @@ class EvChargingController extends Controller
             // Only send the settings we're changing
             $updateSettings = [
                 'sn' => $inverterSn,
-                'sellTime5' => $newSettings['sellTime5'],
-                'cap5' => $newSettings['cap5'],
-                'time5on' => $newSettings['time5on']  // Will be boolean true or string "false"
+
+                "sellTime1" => $settings['sell_time_1'] ?? "00:00",
+                "sellTime2" => $settings['sell_time_2'] ?? "03:00",
+                "sellTime3" => $settings['sell_time_3'] ?? "05:30",
+                "sellTime4" => $settings['sell_time_4'] ?? "08:00",
+                "sellTime5" => $newSettings['sellTime5'],
+                "sellTime6" => $settings['sell_time_6'] ?? "23:30",
+
+                "sellTime1Pac" => "5000",
+                "sellTime2Pac" => "5000",
+                "sellTime3Pac" => "5000",
+                "sellTime4Pac" => "5000",
+                "sellTime5Pac" => "5000",
+                "sellTime6Pac" => "5000",
+
+                "cap1" => $settings['cap_1'] ?? "100",
+                "cap2" => $settings['cap_2'] ?? "100",
+                "cap3" => $settings['cap_3'] ?? "25",
+                "cap4" => $settings['cap_4'] ?? "25",
+                "cap5" => $newSettings['cap5'],
+                "cap6" => $settings['cap_6'] ?? "100",
+
+                "sellTime1Volt" => "49",
+                "sellTime2Volt" => "49",
+                "sellTime3Volt" => "49",
+                "sellTime4Volt" => "49",
+                "sellTime5Volt" => "49",
+                "sellTime6Volt" => "49",
+
+                "mondayOn" => true,
+                "tuesdayOn" => true,
+                "wednesdayOn" => true,
+                "thursdayOn" => true,
+                "fridayOn" => true,
+                "saturdayOn" => true,
+                "sundayOn" => true,
+
+                "time1on" => ($settings['time_1_on'] ?? 'true') === 'true' ? true : "false",
+                "time2on" => ($settings['time_2_on'] ?? 'true') === 'true' ? true : "false",
+                "time3on" => ($settings['time_3_on'] ?? 'false') === 'true' ? true : "false",
+                "time4on" => ($settings['time_4_on'] ?? 'false') === 'true' ? true : "false", 
+                "time5on" => $newSettings['time5on'],  // Will be boolean true or string "false"
+                "time6on" => ($settings['time_6_on'] ?? 'true') === 'true' ? true : "false",
+
+                "genTime1on" => "false",
+                "genTime2on" => "false",
+                "genTime3on" => "false",
+                "genTime4on" => "false",
+                "genTime5on" => "false",
+                "genTime6on" => "false"
             ];
             
             $logs[] = "Settings have changed, updating...";
@@ -310,6 +370,7 @@ class EvChargingController extends Controller
             $logs[] = "- time5on: " . ($newSettings['time5on'] ? 'true' : 'false') . " (current: " . (($apiCurrentSettings['time5on'] ?? false) ? 'true' : 'false') . ")";
             
             $success = $this->sunSyncService->updateSystemModeSettings($inverterSn, $updateSettings);
+            
             $apiCalls[] = [
                 'name' => 'SunSync API - Update System Mode Settings',
                 'endpoint' => "POST /api/v1/common/setting/{$inverterSn}/set",
@@ -317,6 +378,14 @@ class EvChargingController extends Controller
                 'response' => ['success' => $success]
             ];
             $logs[] = "Settings update " . ($success ? "successful" : "failed");
+            $logs[] = "=== API CALLS SUMMARY ===";
+            foreach ($apiCalls as $index => $apiCall) {
+                $logs[] = "API Call " . ($index + 1) . ": " . ($apiCall['name'] ?? 'Unknown');
+                $logs[] = "  Endpoint: " . ($apiCall['endpoint'] ?? 'N/A');
+                $logs[] = "  Request: " . json_encode($apiCall['request'] ?? []);
+                $logs[] = "  Response: " . json_encode($apiCall['response'] ?? []);
+            }
+            $logs[] = "=== END API CALLS ===";
             return $this->handleResponse($isCronMode, $logs, $apiCalls, $success);
         } else {
             $logs[] = "No settings update needed - all values already match:";
@@ -328,39 +397,27 @@ class EvChargingController extends Controller
         }
     }
 
-    public function updateSettings(): View|JsonResponse|RedirectResponse|Response
+    public function updateSettings(UpdateEvSettingsRequest $request): View|JsonResponse|RedirectResponse|Response
     {
+        // Get validated data
+        $validated = $request->validated();
+        
         // Get current settings first
         $currentSettings = $this->settingsService->getSettings();
         
-        // Only update the fields that were submitted
-        $settings = $currentSettings;
-        if (request()->has('default_sell_time')) {
-            $settings['default_sell_time'] = request('default_sell_time');
-        }
-        if (request()->has('default_cap')) {
-            $settings['default_cap'] = request('default_cap');
-        }
-        if (request()->has('night_start')) {
-            $settings['night_start'] = request('night_start');
-        }
-        if (request()->has('night_end')) {
-            $settings['night_end'] = request('night_end');
-        }
-
-        // Validate time formats for any time fields that were submitted
-        foreach (['default_sell_time', 'night_start', 'night_end'] as $timeField) {
-            if (request()->has($timeField) && !preg_match('/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/', $settings[$timeField])) {
-                return redirect()->route('ev-charging.status')
-                    ->with('error', "Invalid time format for {$timeField}. Please use HH:MM format.");
+        // Handle checkbox values - checkboxes not sent when unchecked
+        // Convert to 'true'/'false' strings for consistency with API
+        foreach (['time_1_on', 'time_2_on', 'time_3_on', 'time_4_on', 'time_6_on'] as $timeOnField) {
+            if (array_key_exists($timeOnField, $validated)) {
+                $validated[$timeOnField] = $validated[$timeOnField] ? 'true' : 'false';
+            } elseif ($request->has('sell_time_1') || $request->has('sell_time_2')) {
+                // If any time slot field is present but this checkbox isn't, it means unchecked
+                $validated[$timeOnField] = 'false';
             }
         }
-
-        // Validate cap value if it was submitted
-        if (request()->has('default_cap') && (!is_numeric($settings['default_cap']) || $settings['default_cap'] < 0 || $settings['default_cap'] > 100)) {
-            return redirect()->route('ev-charging.status')
-                ->with('error', 'Default cap must be a number between 0 and 100.');
-        }
+        
+        // Merge with validated input
+        $settings = array_merge($currentSettings, array_filter($validated, fn($value) => $value !== null));
 
         $success = $this->settingsService->updateSettings($settings);
 

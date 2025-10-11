@@ -23,3 +23,6 @@ yarn-error.log
 /.zed
 .DS_Store
 .DS_Store
+/.cursor
+/.cursor
+.DS_Store

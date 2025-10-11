@@ -39,5 +39,9 @@ return [
         'username' => env('SUNSYNC_USERNAME'),
         'password' => env('SUNSYNC_PASSWORD'),
     ],
+    
+    'api' => [
+        'key' => env('API_KEY'),
+    ],
 
 ];

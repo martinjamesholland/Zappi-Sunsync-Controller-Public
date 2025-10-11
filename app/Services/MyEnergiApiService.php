@@ -6,6 +6,8 @@ namespace App\Services;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException as GuzzleRequestException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 
@@ -78,9 +80,49 @@ class MyEnergiApiService
                 'status' => $response->getStatusCode(),
             ]);
             return null;
-        } catch (GuzzleException $e) {
+        } catch (ConnectException $e) {
+            Log::error('MyEnergi API connection failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            // Track the failed request
+            $requestData = $this->maskSensitiveData([
+                'url' => $this->baseUrl . $endpoint,
+                'method' => 'GET',
+                'headers' => [
+                    'Authorization' => 'Digest ' . base64_encode($this->serial . ':' . $this->password),
+                    'Accept' => 'application/json'
+                ],
+                'body' => null,
+                'response' => ['error' => 'Connection failed: ' . $e->getMessage()]
+            ]);
+            $this->apiRequests[] = $requestData;
+
+            return null;
+        } catch (GuzzleRequestException $e) {
             Log::error('MyEnergi API request failed', [
                 'error' => $e->getMessage(),
+                'status' => $e->getResponse()?->getStatusCode()
+            ]);
+
+            // Track the failed request
+            $requestData = $this->maskSensitiveData([
+                'url' => $this->baseUrl . $endpoint,
+                'method' => 'GET',
+                'headers' => [
+                    'Authorization' => 'Digest ' . base64_encode($this->serial . ':' . $this->password),
+                    'Accept' => 'application/json'
+                ],
+                'body' => null,
+                'response' => ['error' => $e->getMessage()]
+            ]);
+            $this->apiRequests[] = $requestData;
+
+            return null;
+        } catch (GuzzleException $e) {
+            Log::critical('Unexpected MyEnergi API error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             // Track the failed request

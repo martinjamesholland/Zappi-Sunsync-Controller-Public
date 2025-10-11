@@ -1,154 +1,200 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Application Key Setup</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Nunito', sans-serif;
-            background-color: #f8f9fa;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .setup-container {
-            max-width: 600px;
-            padding: 2rem;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-        .setup-icon {
-            font-size: 4rem;
-            color: #0d6efd;
-            margin-bottom: 1rem;
-        }
-        .setup-title {
-            color: #0d6efd;
-            margin-bottom: 1.5rem;
-        }
-        .key-display {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 5px;
-            margin: 1rem 0;
-            word-break: break-all;
-            font-family: monospace;
-        }
-        .loading {
-            display: none;
-        }
-        .loading.active {
-            display: inline-block;
-        }
-        .file-info {
-            background: #e9ecef;
-            padding: 1rem;
-            border-radius: 5px;
-            margin: 1rem 0;
-            font-family: monospace;
-            font-size: 0.9em;
-        }
-    </style>
-</head>
-<body>
-    <div class="setup-container">
-        <div class="text-center">
-            <div class="setup-icon">🔑</div>
-            <h1 class="setup-title">Application Key Setup</h1>
-            <p class="lead">Generate and update your application encryption key</p>
-        </div>
+@extends('layouts.setup')
 
-        @if(!$envExists)
-        <div class="alert alert-warning">
-            <h5>Warning: .env file not found</h5>
-            <p class="mb-0">The system will attempt to create a new .env file at: <code>{{ $envPath }}</code></p>
-        </div>
-        @endif
+@section('title', 'APP KEY Setup - Solar Battery EV Charger')
 
-        <div class="alert alert-info">
-            <p class="mb-0">This tool will help you generate and update your application key in the .env file.</p>
-        </div>
+@section('content')
+<div class="setup-header">
+    <h1 class="h2 mb-2">
+        <i class="bi bi-key-fill"></i> Step 1: Application Key
+    </h1>
+    <p class="mb-0">Generate a secure encryption key for your application</p>
+</div>
 
-        <div class="d-grid gap-2">
-            <button id="generateKey" class="btn btn-primary btn-lg">
-                Generate New Key
-                <span class="spinner-border spinner-border-sm loading" role="status" aria-hidden="true"></span>
-            </button>
+<div class="setup-body">
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step active">
+            <div class="step-circle">1</div>
+            <span class="step-label">APP KEY</span>
         </div>
-
-        <div id="result" class="mt-4" style="display: none;">
-            <div class="alert alert-success">
-                <h5>Success!</h5>
-                <p class="mb-2">Your application key has been generated and updated.</p>
-                <div class="key-display" id="generatedKey"></div>
-                <p class="mt-2 mb-0">The application will now work correctly. You can refresh the page to continue.</p>
-            </div>
+        <div class="step">
+            <div class="step-circle">2</div>
+            <span class="step-label">Database</span>
         </div>
-
-        <div id="error" class="mt-4" style="display: none;">
-            <div class="alert alert-danger">
-                <h5>Error</h5>
-                <p id="errorMessage" class="mb-0"></p>
-            </div>
+        <div class="step">
+            <div class="step-circle">3</div>
+            <span class="step-label">Zappi</span>
         </div>
-
-        <div class="mt-4">
-            <h5>System Information:</h5>
-            <div class="file-info">
-                <p class="mb-1"><strong>Environment File:</strong> {{ $envPath }}</p>
-                <p class="mb-1"><strong>Status:</strong> {{ $envExists ? 'Found' : 'Not Found' }}</p>
-                <p class="mb-0"><strong>Writable:</strong> {{ is_writable($envPath) ? 'Yes' : 'No' }}</p>
-            </div>
+        <div class="step">
+            <div class="step-circle">4</div>
+            <span class="step-label">SunSync</span>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.getElementById('generateKey').addEventListener('click', async function() {
-            const button = this;
-            const spinner = button.querySelector('.spinner-border');
-            const result = document.getElementById('result');
-            const error = document.getElementById('error');
+    <!-- Alert Messages -->
+    <div id="alertContainer"></div>
+
+    <!-- Information -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle-fill"></i>
+        <strong>What is an Application Key?</strong>
+        <p class="mb-0 mt-2">
+            The application key is used to encrypt session data and other sensitive information. 
+            It's essential for the security of your application. This key will be stored in your .env file.
+        </p>
+    </div>
+
+    @if($hasAppKey)
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <strong>Application Key Already Set</strong>
+            <p class="mb-2 mt-2">Your application already has an encryption key configured.</p>
+            <div class="font-monospace small text-break bg-light p-2 rounded">
+                {{ $currentKey }}
+            </div>
+        </div>
+    @else
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>No Application Key Found</strong>
+            <p class="mb-0 mt-2">Click the button below to generate a new application key.</p>
+        </div>
+    @endif
+
+    <!-- Current Status -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Current Status</h5>
+            <table class="table table-sm mb-0">
+                <tbody>
+                    <tr>
+                        <td><strong>.env File:</strong></td>
+                        <td>
+                            @if(file_exists(base_path('.env')))
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Exists
+                                </span>
+                            @else
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-exclamation-circle"></i> Will be created
+                                </span>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>APP_KEY:</strong></td>
+                        <td>
+                            @if($hasAppKey)
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Configured
+                                </span>
+                            @else
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Not Set
+                                </span>
+                            @endif
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-grid gap-2">
+        <button type="button" id="generateKeyBtn" class="btn btn-primary btn-lg">
+            <i class="bi bi-key"></i> 
+            {{ $hasAppKey ? 'Regenerate Application Key' : 'Generate Application Key' }}
+        </button>
+        
+        @if($hasAppKey)
+            <a href="{{ route('setup.database') }}" class="btn btn-success btn-lg">
+                <i class="bi bi-arrow-right-circle"></i> Continue to Database Setup
+            </a>
+        @endif
+        
+        <a href="{{ route('setup.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Overview
+        </a>
+    </div>
+
+    @if($hasAppKey)
+        <div class="alert alert-warning mt-4 mb-0">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Warning:</strong> Regenerating the application key will invalidate all existing sessions and encrypted data.
+        </div>
+    @endif
+</div>
+@endsection
+
+@section('scripts')
+<script>
+document.getElementById('generateKeyBtn').addEventListener('click', function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    
+    // Disable button and show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+    
+    // Clear previous alerts
+    document.getElementById('alertContainer').innerHTML = '';
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+    
+    fetch('{{ route('setup.app-key.generate') }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            document.getElementById('alertContainer').innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <strong>Success!</strong> ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
             
-            // Reset UI
-            result.style.display = 'none';
-            error.style.display = 'none';
-            spinner.classList.add('active');
-            button.disabled = true;
-
-            try {
-                const response = await fetch('{{ $baseUrl }}/setup/app-key/generate', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    document.getElementById('generatedKey').textContent = data.key;
-                    result.style.display = 'block';
-                } else {
-                    document.getElementById('errorMessage').textContent = data.message;
-                    error.style.display = 'block';
-                }
-            } catch (e) {
-                document.getElementById('errorMessage').textContent = 'An error occurred while generating the key.';
-                error.style.display = 'block';
-            } finally {
-                spinner.classList.remove('active');
-                button.disabled = false;
-            }
-        });
-    </script>
-</body>
-</html> 
+            // Reload page after 1.5 seconds to show updated status
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            // Show error message
+            document.getElementById('alertContainer').innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    <strong>Error!</strong> ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Re-enable button
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        // Show error message
+        document.getElementById('alertContainer').innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <strong>Error!</strong> An unexpected error occurred. Please try again.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        // Re-enable button
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+});
+</script>
+@endsection

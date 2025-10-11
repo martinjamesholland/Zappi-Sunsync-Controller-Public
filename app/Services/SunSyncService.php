@@ -7,6 +7,8 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 
 class SunSyncService
 {
@@ -99,36 +101,65 @@ class SunSyncService
                 'status' => $response->status(),
                 'details' => $errorData
             ];
-        } catch (\Exception $e) {
-            Log::error('SunSync authentication failed', [
+        } catch (ConnectionException $e) {
+            Log::error('SunSync connection failed', [
                 'error' => $e->getMessage()
             ]);
             return [
                 'error' => true,
-                'message' => 'Connection error: ' . $e->getMessage(),
+                'message' => 'Unable to connect to SunSync API. Please check your internet connection.',
+                'status' => 503
+            ];
+        } catch (RequestException $e) {
+            Log::error('SunSync request failed', [
+                'error' => $e->getMessage(),
+                'status' => $e->response?->status()
+            ]);
+            return [
+                'error' => true,
+                'message' => 'SunSync API request failed: ' . $e->getMessage(),
+                'status' => $e->response?->status() ?? 500
+            ];
+        } catch (\Exception $e) {
+            Log::critical('Unexpected SunSync authentication error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return [
+                'error' => true,
+                'message' => 'Unexpected error during authentication',
                 'status' => 500
             ];
         }
     }
 
+    /**
+     * Ensure the service is authenticated before making API calls
+     */
+    private function ensureAuthenticated(): bool
+    {
+        if ($this->accessToken) {
+            return true;
+        }
+        
+        Log::info('SunSync access token missing, attempting to authenticate');
+        $username = config('services.sunsync.username');
+        $password = config('services.sunsync.password');
+        
+        if (empty($username) || empty($password)) {
+            Log::error('SunSync authentication failed: Missing credentials');
+            return false;
+        }
+        
+        $authResult = $this->authenticate($username, $password);
+        return $authResult && !isset($authResult['error']) && $this->accessToken !== null;
+    }
+
     public function getPlantInfo(): ?array
     {
-        // Attempt to authenticate if token is missing
-        if (!$this->accessToken) {
-            Log::info('SunSync access token missing, attempting to authenticate');
-            $username = config('services.sunsync.username');
-            $password = config('services.sunsync.password');
-            
-            if (empty($username) || empty($password)) {
-                Log::error('SunSync get plant info failed: Missing credentials');
-                return null;
-            }
-            
-            $authResult = $this->authenticate($username, $password);
-            if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
-                Log::error('SunSync get plant info failed: Authentication failed');
-                return null;
-            }
+        if (!$this->ensureAuthenticated()) {
+            Log::error('SunSync get plant info failed: Authentication failed');
+            return null;
         }
 
         try {
@@ -197,9 +228,21 @@ class SunSyncService
                 'response' => $responseData
             ]);
             return null;
-        } catch (\Exception $e) {
-            Log::error('SunSync get plant info failed', [
+        } catch (ConnectionException $e) {
+            Log::error('SunSync connection failed for plant info', [
                 'error' => $e->getMessage()
+            ]);
+            return null;
+        } catch (RequestException $e) {
+            Log::error('SunSync request failed for plant info', [
+                'error' => $e->getMessage(),
+                'status' => $e->response?->status()
+            ]);
+            return null;
+        } catch (\Exception $e) {
+            Log::critical('Unexpected error getting plant info', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return null;
         }
@@ -207,22 +250,9 @@ class SunSyncService
 
     public function getInverterInfo($plantId): ?array
     {
-        // Attempt to authenticate if token is missing
-        if (!$this->accessToken) {
-            Log::info('SunSync access token missing, attempting to authenticate for inverter info');
-            $username = config('services.sunsync.username');
-            $password = config('services.sunsync.password');
-            
-            if (empty($username) || empty($password)) {
-                Log::error('SunSync get inverter info failed: Missing credentials');
-                return null;
-            }
-            
-            $authResult = $this->authenticate($username, $password);
-            if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
-                Log::error('SunSync get inverter info failed: Authentication failed');
-                return null;
-            }
+        if (!$this->ensureAuthenticated()) {
+            Log::error('SunSync get inverter info failed: Authentication failed');
+            return null;
         }
 
         // Convert to string if it's an integer
@@ -276,8 +306,19 @@ class SunSyncService
                 'response' => $response->json()
             ]);
             return null;
+        } catch (ConnectionException $e) {
+            Log::error('SunSync connection failed for inverter info', [
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        } catch (RequestException $e) {
+            Log::error('SunSync request failed for inverter info', [
+                'error' => $e->getMessage(),
+                'status' => $e->response?->status()
+            ]);
+            return null;
         } catch (\Exception $e) {
-            Log::error('SunSync get inverter info failed', [
+            Log::critical('Unexpected error getting inverter info', [
                 'error' => $e->getMessage()
             ]);
             return null;
@@ -286,22 +327,9 @@ class SunSyncService
 
     public function getInverterSettings($inverterSn): ?array
     {
-        // Attempt to authenticate if token is missing
-        if (!$this->accessToken) {
-            Log::info('SunSync access token missing, attempting to authenticate for inverter settings');
-            $username = config('services.sunsync.username');
-            $password = config('services.sunsync.password');
-            
-            if (empty($username) || empty($password)) {
-                Log::error('SunSync get inverter settings failed: Missing credentials');
-                return null;
-            }
-            
-            $authResult = $this->authenticate($username, $password);
-            if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
-                Log::error('SunSync get inverter settings failed: Authentication failed');
-                return null;
-            }
+        if (!$this->ensureAuthenticated()) {
+            Log::error('SunSync get inverter settings failed: Authentication failed');
+            return null;
         }
 
         // Convert to string if it's not already
@@ -358,8 +386,19 @@ class SunSyncService
                 'response' => $response->json()
             ]);
             return null;
+        } catch (ConnectionException $e) {
+            Log::error('SunSync connection failed for inverter settings', [
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        } catch (RequestException $e) {
+            Log::error('SunSync request failed for inverter settings', [
+                'error' => $e->getMessage(),
+                'status' => $e->response?->status()
+            ]);
+            return null;
         } catch (\Exception $e) {
-            Log::error('SunSync get inverter settings failed', [
+            Log::critical('Unexpected error getting inverter settings', [
                 'error' => $e->getMessage()
             ]);
             return null;
@@ -395,8 +434,19 @@ class SunSyncService
             }
             Log::error('SunSync get inverter flow info failed: API request failed');
             return null;
+        } catch (ConnectionException $e) {
+            Log::error('SunSync connection failed for inverter flow info', [
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        } catch (RequestException $e) {
+            Log::error('SunSync request failed for inverter flow info', [
+                'error' => $e->getMessage(),
+                'status' => $e->response?->status()
+            ]);
+            return null;
         } catch (\Exception $e) {
-            Log::error('SunSync get inverter flow info failed', [
+            Log::critical('Unexpected error getting inverter flow info', [
                 'error' => $e->getMessage()
             ]);
             return null;
@@ -410,22 +460,9 @@ class SunSyncService
 
     public function updateSystemModeSettings(string $inverterSn, array $settings): bool
     {
-        // Attempt to authenticate if token is missing
-        if (!$this->accessToken) {
-            Log::info('SunSync access token missing, attempting to authenticate for updating settings');
-            $username = config('services.sunsync.username');
-            $password = config('services.sunsync.password');
-            
-            if (empty($username) || empty($password)) {
-                Log::error('SunSync update system mode settings failed: Missing credentials');
-                return false;
-            }
-            
-            $authResult = $this->authenticate($username, $password);
-            if (!$authResult || isset($authResult['error']) || !$this->accessToken) {
-                Log::error('SunSync update system mode settings failed: Authentication failed');
-                return false;
-            }
+        if (!$this->ensureAuthenticated()) {
+            Log::error('SunSync update system mode settings failed: Authentication failed');
+            return false;
         }
 
         try {
@@ -440,14 +477,17 @@ class SunSyncService
             $hasChanges = false;
             
             // Only check the specific settings we care about (sn, sellTime5, cap5, time5on)
-            $keysToCheck = ['sn', 'sellTime5', 'cap5', 'time5on'];
+            $keysToCheck = ['sn', 'sellTime5', 'cap5', 'time5on', 'sellTime2'];
             
             foreach ($keysToCheck as $key) {
                 if (!isset($settings[$key])) {
                     continue;
                 }
-                
+                if ($key === 'sellTime2') {
+                    $newValue = '03:00';
+                } else{
                 $newValue = $settings[$key];
+                }
                 $currentValue = $currentSettings[$key] ?? null;
                 
                 // Handle boolean vs string "false" comparison
@@ -464,9 +504,10 @@ class SunSyncService
                     $hasChanges = true;
                     Log::info("SunSync setting {$key} changed: {$currentValue} -> {$newValue}");
                 }
+
             }
             
-            // If no changes, return success without making API call
+           //  If no changes, return success without making API call
             if (!$hasChanges) {
                 Log::info('SunSync update not needed - no setting changes detected');
                 return true;
@@ -513,9 +554,21 @@ class SunSyncService
                 'response' => $response->json()
             ]);
             return false;
-        } catch (\Exception $e) {
-            Log::error('SunSync update system mode settings failed', [
+        } catch (ConnectionException $e) {
+            Log::error('SunSync connection failed for updating settings', [
                 'error' => $e->getMessage()
+            ]);
+            return false;
+        } catch (RequestException $e) {
+            Log::error('SunSync request failed for updating settings', [
+                'error' => $e->getMessage(),
+                'status' => $e->response?->status()
+            ]);
+            return false;
+        } catch (\Exception $e) {
+            Log::critical('Unexpected error updating system mode settings', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return false;
         }

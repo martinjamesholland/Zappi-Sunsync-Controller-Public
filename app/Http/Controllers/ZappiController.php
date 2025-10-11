@@ -76,7 +76,8 @@ class ZappiController extends Controller
 
         return view('zappi.status', [
             'data' => $maskedData,
-            'apiRequests' => $maskedApiRequests
+            'apiRequests' => $maskedApiRequests,
+            'zappiData' => $data
         ]);
     }
 } 

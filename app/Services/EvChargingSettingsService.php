@@ -4,24 +4,82 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\EvChargingSetting;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class EvChargingSettingsService
 {
     private const SETTINGS_FILE = 'ev-charging-settings.csv';
-    private const DEFAULT_SETTINGS = [
-        'default_sell_time' => '22:00',
-        'default_cap' => '20',
-        'night_start' => '23:30',
-        'night_end' => '05:30'
-    ];
+    
+    private function getDefaultSettings(): array
+    {
+        return [
+            // Primary EV charging slot (Slot 5)
+            'default_sell_time' => config('sunsync.defaults.sell_time', '22:00'),
+            'default_cap' => config('sunsync.defaults.cap', '20'),
+            
+            // Additional time slots with grid charging capability
+            'sell_time_1' => config('sunsync.defaults.sell_time_1', '00:00'),
+            'cap_1' => config('sunsync.defaults.cap_1', '100'),
+            'time_1_on' => config('sunsync.defaults.time_1_on', 'true'),
+            
+            'sell_time_2' => config('sunsync.defaults.sell_time_2', '03:00'),
+            'cap_2' => config('sunsync.defaults.cap_2', '100'),
+            'time_2_on' => config('sunsync.defaults.time_2_on', 'true'),
+            
+            'sell_time_3' => config('sunsync.defaults.sell_time_3', '05:30'),
+            'cap_3' => config('sunsync.defaults.cap_3', '25'),
+            'time_3_on' => config('sunsync.defaults.time_3_on', 'false'),
+            
+            'sell_time_4' => config('sunsync.defaults.sell_time_4', '08:00'),
+            'cap_4' => config('sunsync.defaults.cap_4', '25'),
+            'time_4_on' => config('sunsync.defaults.time_4_on', 'false'),
+            
+            'sell_time_6' => config('sunsync.defaults.sell_time_6', '23:30'),
+            'cap_6' => config('sunsync.defaults.cap_6', '100'),
+            'time_6_on' => config('sunsync.defaults.time_6_on', 'true'),
+            
+            // Night time range
+            'night_start' => config('sunsync.defaults.night_start', '23:30'),
+            'night_end' => config('sunsync.defaults.night_end', '05:30')
+        ];
+    }
+
+    /**
+     * Check if database table exists and is ready to use
+     */
+    private function useDatabaseStorage(): bool
+    {
+        try {
+            return Schema::hasTable('ev_charging_settings');
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
 
     public function getSettings(): array
     {
+        $defaults = $this->getDefaultSettings();
+        
+        // Prefer database storage if available
+        if ($this->useDatabaseStorage()) {
+            $settings = EvChargingSetting::getAllSettings();
+            
+            // If no settings in database, initialize with defaults
+            if (empty($settings)) {
+                EvChargingSetting::updateSettings($defaults);
+                return $defaults;
+            }
+            
+            return array_merge($defaults, $settings);
+        }
+        
+        // Fallback to CSV storage
         if (!Storage::exists(self::SETTINGS_FILE)) {
-            $this->saveSettings(self::DEFAULT_SETTINGS);
-            return self::DEFAULT_SETTINGS;
+            $this->saveSettings($defaults);
+            return $defaults;
         }
 
         $content = Storage::get(self::SETTINGS_FILE);
@@ -38,11 +96,22 @@ class EvChargingSettingsService
             $settings[$key] = $value;
         }
 
-        return array_merge(self::DEFAULT_SETTINGS, $settings);
+        return array_merge($defaults, $settings);
     }
 
     public function saveSettings(array $settings): bool
     {
+        // Prefer database storage if available
+        if ($this->useDatabaseStorage()) {
+            try {
+                EvChargingSetting::updateSettings($settings);
+                return true;
+            } catch (\Exception $e) {
+                // Fall through to CSV storage on error
+            }
+        }
+        
+        // Fallback to CSV storage
         $tempFile = tempnam(sys_get_temp_dir(), 'settings_');
         $handle = fopen($tempFile, 'w');
         

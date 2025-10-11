@@ -6,7 +6,7 @@
     border: 1px solid #eee;
     border-radius: 8px;
     overflow: hidden;
-    background-color: #fafafa;
+    background-color: #ffffff;
 }
 
 .energy-node {
@@ -270,4 +270,83 @@
 .active-arrow-line {
     opacity: 1;
     animation: flowAnimation 2s infinite;
+}
+
+/* Responsive Design for Energy Flow Container */
+@media (max-width: 768px) {
+    .energy-flow-container {
+        height: 400px;
+        min-height: 350px;
+    }
+    
+    .energy-node img {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .energy-node-label {
+        font-size: 11px;
+    }
+    
+    .energy-value,
+    .energy-percentage {
+        font-size: 14px;
+    }
+    
+    .inverter-node img {
+        width: 55px;
+        height: 55px;
+    }
+}
+
+@media (max-width: 576px) {
+    .energy-flow-container {
+        height: 350px;
+        min-height: 300px;
+    }
+    
+    .energy-node img {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .energy-node-label {
+        font-size: 10px;
+    }
+    
+    .energy-value,
+    .energy-percentage {
+        font-size: 12px;
+    }
+    
+    .inverter-node img {
+        width: 45px;
+        height: 45px;
+    }
+}
+
+@media (max-width: 400px) {
+    .energy-flow-container {
+        height: 300px;
+        min-height: 250px;
+    }
+    
+    .energy-node img {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .energy-node-label {
+        font-size: 9px;
+    }
+    
+    .energy-value,
+    .energy-percentage {
+        font-size: 11px;
+    }
+    
+    .inverter-node img {
+        width: 40px;
+        height: 40px;
+    }
 } 

@@ -416,143 +416,211 @@
                                             <h4>Inverter Flow Information</h4>
                                         </div>
                                         <div class="card-body">
-                                            <!-- Energy Flow Diagram -->
-                                            <div class="energy-flow-container">
-                                                <!-- SVG Overlay for Flow Animations -->
-                                                <svg width="100%" height="100%" style="position: absolute; top: -30px; left: 0; z-index: 2;">
-                                                    <!-- Solar to Inverter path -->
-                                                    <path id="path-solar-to-inverter" stroke="#ffc354" d="M145,350 145,120 345,120" class="path-line"></path>
+                                            @php
+                                                // Use inverterFlowInfo for the flow diagram (same as home page)
+                                                $sunSyncData = $inverterFlowInfo;
+                                            @endphp
+                                            
+                                            <!-- Main Energy Flow Container (Same as Home Page) -->
+                                            <div class="energy-flow-container" style="max-width: 700px; min-width: 300px; margin: 0 auto; min-height: 500px; position: relative;">
+                                                <!-- SVG Layer: Contains all flow path animations -->
+                                                <svg id="energy-flow-svg" width="100%" viewBox="0 0 700 800" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 1; pointer-events: none;">
+                                                    <!-- Flow Path Definitions -->
+                                                    <!-- PV1 to Inverter Path -->
+                                                    <path id="path-pv1-to-inverter" stroke="{{ ($sunSyncData['pv'][0]['power'] ?? 0) > 0 ? '#e59866' : '#cccccc' }}" stroke-width="2" fill="none" class="path-line"
+                                                          d="M 60 100 L 120 100 L 120 175 L 330 175">
+                                                        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                                    </path>
+                                                    @if(($sunSyncData['pv'][0]['power'] ?? 0) > 0)
                                                     <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
                                                         <animateMotion dur="3.4s" rotate="auto" repeatCount="indefinite">
-                                                            <mpath xlink:href="#path-solar-to-inverter"></mpath>
+                                                            <mpath xlink:href="#path-pv1-to-inverter"/>
                                                         </animateMotion>
                                                     </image>
+                                                    @endif
                                                     
-                                                    <!-- Grid to Inverter path -->
-                                                    <!--<path id="path-grid-to-inverter" stroke="#ffc354" d="M575,350 575,120 345,120" class="path-line"></path>-->
-                                                    <path id="path-grid-to-inverter" stroke="#ffc354" d="M345,120 575,120 575,350" class="path-line"></path>
-                                                   
-                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
-                                                        <animateMotion dur="3.6s" rotate="auto" repeatCount="indefinite">
-                                                            <mpath xlink:href="#path-grid-to-inverter"></mpath>
-                                                        </animateMotion>
-                                                    </image>
-                                                    
-                                                    <!-- Inverter to Battery path -->
-                                                    <path id="path-inverter-to-battery" stroke="#ffc354" d="M245,350 345,120" class="path-line"></path>
-                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
-                                                        <animateMotion dur="3.2s" rotate="auto" repeatCount="indefinite">
-                                                            <mpath xlink:href="#path-inverter-to-battery"></mpath>
-                                                        </animateMotion>
-                                                    </image>
-                                                    
-                                                    <!-- Inverter to UPS path -->
-                                                    <path id="path-inverter-to-ups" stroke="#ffc354" d="M345,120 345,350" class="path-line"></path>
-                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
-                                                        <animateMotion dur="3.0s" rotate="auto" repeatCount="indefinite">
-                                                            <mpath xlink:href="#path-inverter-to-ups"></mpath>
-                                                        </animateMotion>
-                                                    </image>
-                                                    
-                                                    <!-- Inverter to Smart path -->
-                                                    <path id="path-inverter-to-smart" stroke="#ffc354" d="M345,120 425,350" class="path-line"></path>
-                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
-                                                        <animateMotion dur="3.3s" rotate="auto" repeatCount="indefinite">
-                                                            <mpath xlink:href="#path-inverter-to-smart"></mpath>
-                                                        </animateMotion>
-                                                    </image>
-                                                    
-                                                    <!-- Inverter to Home path -->
-                                                    <path id="path-inverter-to-home" stroke="#ffc354" d="M345,120 495,350" class="path-line"></path>
-                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
-                                                        <animateMotion dur="3.3s" rotate="auto" repeatCount="indefinite">
-                                                            <mpath xlink:href="#path-inverter-to-home"></mpath>
-                                                        </animateMotion>
-                                                    </image>
-                                                    
-                                                    @if(isset($inverterFlowInfo['pv']) && is_array($inverterFlowInfo['pv']) && count($inverterFlowInfo['pv']) > 1)
-                                                    <!-- Second Solar Panel path -->
-                                                    <path id="path-solar2-to-inverter" stroke="#ffc354" d="M45,350 45,120 345,120" class="path-line"></path>
+                                                    <!-- PV2 to Inverter Path (Conditional) -->
+                                                    <path id="path-pv2-to-inverter" stroke="{{ ($sunSyncData['pv'][1]['power'] ?? 0) > 0 ? '#e59866' : '#cccccc' }}" stroke-width="2" fill="none" class="path-line"
+                                                          d="M 60 250 L 120 250 L 120 175 L 330 175">
+                                                        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                                    </path>
+                                                    @if(($sunSyncData['pv'][1]['power'] ?? 0) > 0)
                                                     <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
                                                         <animateMotion dur="3.8s" rotate="auto" repeatCount="indefinite">
-                                                            <mpath xlink:href="#path-solar2-to-inverter"></mpath>
+                                                            <mpath xlink:href="#path-pv2-to-inverter"/>
+                                                        </animateMotion>
+                                                    </image>
+                                                    @endif
+
+                                                    <!-- Battery to Inverter Path -->
+                                                    @php
+                                                        $battPower = $sunSyncData['battPower'] ?? 0;
+                                                        $battPathColor = $battPower == 0 ? '#cccccc' : '#66bb6a';
+                                                        $battPathD = '';
+                                                        
+                                                        if (isset($sunSyncData['batTo']) && $sunSyncData['batTo']) {
+                                                            $battPathD = 'M 140 375 L 140 190 L 300 190 L 330 190';
+                                                        } elseif (isset($sunSyncData['toBat']) && $sunSyncData['toBat']) {
+                                                            $battPathD = 'M 330 190 L 300 190 L 140 190 L 140 375';
+                                                        } else {
+                                                            $battPathD = 'M 140 375 L 140 190 L 300 190 L 330 190';
+                                                        }
+                                                    @endphp
+                                                    <path id="path-battery-to-inverter" 
+                                                          stroke="{{ $battPathColor }}" 
+                                                          stroke-width="2" 
+                                                          fill="none" 
+                                                          class="path-line"
+                                                          d="{{ $battPathD }}">
+                                                        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                                    </path>
+                                                    @if($battPower != 0)
+                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                        <animateMotion dur="3.2s" rotate="auto" repeatCount="indefinite">
+                                                            <mpath xlink:href="#path-battery-to-inverter"/>
+                                                        </animateMotion>
+                                                    </image>
+                                                    @endif
+
+                                                    <!-- UPS to Inverter Path -->
+                                                    @php
+                                                        $upsPower = $sunSyncData['upsLoadPower'] ?? 0;
+                                                        $upsPathColor = $upsPower != 0 ? '#7986cb' : '#cccccc';
+                                                        $upsPathD = 'M 340 210 L 340 265 L 245 265 L 245 375'; 
+                                                    @endphp
+                                                    <path id="path-ups-to-inverter" stroke="{{ $upsPathColor }}" stroke-width="2" fill="none" class="path-line"
+                                                          d="{{ $upsPathD }}">
+                                                        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                                    </path>
+                                                    @if($upsPower != 0)
+                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                        <animateMotion dur="3.0s" rotate="auto" repeatCount="indefinite">
+                                                            <mpath xlink:href="#path-ups-to-inverter"/>
+                                                        </animateMotion>
+                                                    </image>
+                                                    @endif
+
+                                                    <!-- Smart Load to Inverter Path -->
+                                                    <path id="path-smart-to-inverter" stroke="{{ ($sunSyncData['smartLoadPower'] ?? 0) != 0 ? '#4db6ac' : '#cccccc' }}" stroke-width="2" fill="none" class="path-line"
+                                                          d="M 350 210 L 350 265 350 355 L 350 355 L 350 375">
+                                                        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                                    </path>
+                                                    @if(($sunSyncData['smartLoadPower'] ?? 0) > 0)
+                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                        <animateMotion dur="3.3s" rotate="auto" repeatCount="indefinite">
+                                                            <mpath xlink:href="#path-smart-to-inverter"/>
+                                                        </animateMotion>
+                                                    </image>
+                                                    @endif
+
+                                                    <!-- Home Load to Inverter Path -->
+                                                    <path id="path-home-to-inverter" stroke="{{ ($sunSyncData['homeLoadPower'] ?? 0) != 0 ? '#f06292' : '#cccccc' }}" stroke-width="2" fill="none" class="path-line"
+                                                          d="M 360 210 L 360 265 L 455 265 L 455 375">
+                                                        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                                    </path>
+                                                    @if(($sunSyncData['homeLoadPower'] ?? 0) > 0)
+                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                        <animateMotion dur="3.3s" rotate="auto" repeatCount="indefinite">
+                                                            <mpath xlink:href="#path-home-to-inverter"/>
+                                                        </animateMotion>
+                                                    </image>
+                                                    @endif
+
+                                                    <!-- Grid to Inverter Path -->
+                                                    @php
+                                                        $gridPower = $sunSyncData['gridOrMeterPower'] ?? 0;
+                                                    @endphp
+                                                    <path id="path-grid-to-inverter" 
+                                                          stroke="{{ $gridPower != 0 ? '#90caf9' : '#cccccc' }}" 
+                                                          stroke-width="2" 
+                                                          fill="none" 
+                                                          class="path-line"
+                                                          d="{{ $gridPower < 0 ? 'M 375 175 L 500 175 L 500 85 L 550 85' : 'M 550 85 L 500 85 L 500 175 L 375 175' }}">
+                                                        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                                    </path>
+                                                    @if($gridPower != 0)
+                                                    <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                        <animateMotion dur="3.6s" rotate="auto" repeatCount="indefinite">
+                                                            <mpath xlink:href="#path-grid-to-inverter"/>
                                                         </animateMotion>
                                                     </image>
                                                     @endif
                                                 </svg>
-                                                
-                                                <!-- Inverter Node (Top Center) -->
-                                                <div class="inverter-node">
+
+                                                <!-- Node Definitions -->
+                                                <!-- Central Inverter Node -->
+                                                <div id="inverter-node" class="energy-node inverter-node" style="position: absolute; top: 125px; left: 50%; transform: translateX(-50%); z-index: 10; width: 150px; text-align: center;">
                                                     <div class="energy-node-label">Inverter</div>
-                                                    <img src="{{ asset('images/icons/inverter.svg') }}" alt="Inverter">
+                                                    <img src="{{ asset('images/icons/inverter.png') }}" alt="Inverter" style="width: 70px; height: 70px;">
                                                 </div>
-                                                
-                                                <!-- Components Row at Bottom -->
+
+                                                <!-- Left Side Nodes -->
                                                 <!-- PV1 Node -->
-                                                <div class="energy-node" style="position: absolute; bottom: 39px; left: 45px; transform: translateX(-50%); z-index: 3;">
-                                                    <img src="{{ asset('images/icons/solar-panel.svg') }}" alt="Solar Panel">
+                                                <div id="pv1-node" class="energy-node" style="position: absolute; top: 50px; left: 5%; transform: translateX(-50%); z-index: 3; width: 70px; text-align: center;">
+                                                    <img src="{{ asset('images/icons/solar-panel.png') }}" alt="Solar Panel" style="width: 50px; height: 50px;">
                                                     <div class="energy-node-label">PV1</div>
-                                                    <div id="solar-power-value" class="energy-value">{{ number_format(isset($inverterFlowInfo['pv']) && is_array($inverterFlowInfo['pv']) && isset($inverterFlowInfo['pv'][0]['power']) ? $inverterFlowInfo['pv'][0]['power'] : 0, 0) }}W</div>
+                                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['pv'][0]['power'] ?? 0, 0) }}W</div>
                                                 </div>
-                                                @if(isset($inverterFlowInfo['pv']) && is_array($inverterFlowInfo['pv']) && count($inverterFlowInfo['pv']) > 1)
-                                                <!-- PV2 Node (Only if available) -->
-                                                <div class="energy-node" style="position: absolute; bottom: 39px; left: 145px; transform: translateX(-50%); z-index: 3;">
-                                                    <img src="{{ asset('images/icons/solar-panel.svg') }}" alt="Solar Panel 2">
+
+                                                <!-- PV2 Node (Conditional) -->
+                                                @if(isset($sunSyncData['pv']) && is_array($sunSyncData['pv']) && count($sunSyncData['pv']) > 1)
+                                                <div id="pv2-node" class="energy-node" style="position: absolute; top: 200px; left: 5%; transform: translateX(-50%); z-index: 3; width: 70px; text-align: center;">
+                                                    <img src="{{ asset('images/icons/solar-panel.png') }}" alt="Solar Panel 2" style="width: 50px; height: 50px;">
                                                     <div class="energy-node-label">PV2</div>
-                                                    <div id="solar2-power-value" class="energy-value">{{ number_format($inverterFlowInfo['pv'][1]['power'] ?? 0, 0) }}W</div>
+                                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['pv'][1]['power'] ?? 0, 0) }}W</div>
                                                 </div>
                                                 @endif
-                                                
+
+                                                <!-- PV Combined Power Node -->
+                                                <div id="pv-combined-power-node" class="energy-node inverter-node" style="position: absolute; top: 150px; left: 25%; transform: translateX(-50%); z-index: 10; width: 90px; text-align: center;">
+                                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format(($sunSyncData['pv'][0]['power'] ?? 0) + ($sunSyncData['pv'][1]['power'] ?? 0), 0) }}W</div>
+                                                </div>
+
+                                                <!-- Bottom Row Nodes -->
                                                 <!-- Battery Node -->
-                                                <div class="energy-node" style="position: absolute; bottom: 10px; left: 245px; transform: translateX(-50%); z-index: 3;">
-                                                    <img src="{{ asset('images/icons/battery.svg') }}" alt="Battery">
+                                                <div id="battery-node" class="energy-node" style="position: absolute; top: 370px; left: 20%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                                    <img src="{{ asset('images/icons/battery.png') }}" alt="Battery" style="width: 50px; height: 50px;">
                                                     <div class="energy-node-label">Battery</div>
-                                                    <div id="battery-power-value" class="energy-value">{{ number_format($inverterFlowInfo['battPower'] ?? 0, 0) }}W</div>
-                                                    <div class="energy-percentage">{{ number_format($inverterFlowInfo['soc'] ?? 0, 0) }}%</div>
+                                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['battPower'] ?? 0, 0) }}W</div>
+                                                    <div class="energy-percentage" style="top: -83px;position: relative;left: -40px;{{ ($sunSyncData['soc'] ?? 0) == 100 ? 'color: #66bb6a; font-weight: bold;' : (($sunSyncData['soc'] ?? 0) <= 20 ? 'color: #f44336; font-weight: bold;' : '') }}">{{ number_format($sunSyncData['soc'] ?? 0, 0) }}%</div>
                                                 </div>
-                                               
+
                                                 <!-- UPS Node -->
-                                                <div class="energy-node" style="position: absolute; bottom: 39px; left: 345px; transform: translateX(-50%); z-index: 3;">
-                                                    <img src="{{ asset('images/icons/ups.svg') }}" alt="UPS">
+                                                <div id="ups-node" class="energy-node" style="position: absolute; top: 370px; left: 35%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                                    <img src="{{ asset('images/icons/ups.png') }}" alt="UPS Load" style="width: 50px; height: 50px;">
                                                     <div class="energy-node-label">UPS</div>
-                                                    <div id="ups-load-value" class="energy-value">{{ number_format($inverterFlowInfo['upsLoadPower'] ?? 0, 0) }}W</div>
+                                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['upsLoadPower'] ?? 0, 0) }}W</div>
                                                 </div>
-                                                
+
                                                 <!-- Smart Load Node -->
-                                                <div class="energy-node" style="position: absolute; bottom: 39px; left: 425px; transform: translateX(-50%); z-index: 3;">
-                                                    <img src="{{ asset('images/icons/smart-device.svg') }}" alt="Smart Load">
-                                                    <div class="energy-node-label">Water Heater</div>
-                                                    <div id="smart-load-value" class="energy-value">{{ number_format($inverterFlowInfo['smartLoadPower'] ?? 0, 0) }}W</div>
+                                                <div id="smart-load-node" class="energy-node" style="position: absolute; top: 370px; left: 50%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                                    <img src="{{ asset('images/icons/smart-device.png') }}" alt="Smart Load" style="width: 50px; height: 50px;">
+                                                    <div class="energy-node-label" style="font-size: 0.6em;">Water Heater</div>
+                                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['smartLoadPower'] ?? 0, 0) }}W</div>
                                                 </div>
-                                                
+
                                                 <!-- Home Load Node -->
-                                                <div class="energy-node" style="position: absolute; bottom: 39px; left: 495px; transform: translateX(-50%); z-index: 3;">
-                                                    <img src="{{ asset('images/icons/house.svg') }}" alt="Home Load">
+                                                <div id="home-load-node" class="energy-node" style="position: absolute; top: 370px; left: 65%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                                    <img src="{{ asset('images/icons/house.png') }}" alt="Home Load" style="width: 50px; height: 50px;">
                                                     <div class="energy-node-label">Home</div>
-                                                    <div id="home-load-value" class="energy-value">{{ number_format($inverterFlowInfo['homeLoadPower'] ?? 0, 0) }}W</div>
+                                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format($sunSyncData['homeLoadPower'] ?? 0, 0) }}W</div>
                                                 </div>
-                                                
+
+                                                <!-- Combined Load Node -->
+                                                <div id="combined-load" class="energy-node inverter-node" style="position: absolute; top: 210px; left: 50%; transform: translateX(-50%); z-index: 10; width: 70px; text-align: center;">
+                                                    <div id="combined-load-value" class="energy-value" style="background-color:#fcfcfc; padding: 2px; border-radius: 5px; color:rgb(251 180 40);">
+                                                        {{ number_format(($sunSyncData['upsLoadPower'] ?? 0) + ($sunSyncData['smartLoadPower'] ?? 0) + ($sunSyncData['homeLoadPower'] ?? 0), 0) }}W
+                                                    </div>
+                                                </div>
+
+                                                <!-- Right Side Nodes -->
                                                 <!-- Grid Node -->
-                                                <div class="energy-node" style="position: absolute; bottom: 39px; left: 575px; transform: translateX(-50%); z-index: 3;">
-                                                    <img src="{{ asset('images/icons/power-grid.svg') }}" alt="Power Grid">
+                                                <div id="grid-node" class="energy-node" style="position: absolute; top: 50px; left: 82.14%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                                    <img src="{{ asset('images/icons/power-grid.png') }}" alt="Power Grid" style="width: 50px; height: 50px;">
                                                     <div class="energy-node-label">Grid</div>
-                                                    <div id="grid-power-value" class="energy-value">{{ number_format($inverterFlowInfo['gridOrMeterPower'] ?? 0, 0) }}W</div>
+                                                    <div class="energy-value" style="color:rgb(251 180 40)">{{ number_format(abs($sunSyncData['gridOrMeterPower'] ?? 0), 0) }}W</div>
                                                 </div>
-                                                
-                                                
                                             </div>
-                                            
-                                            <!-- Hidden flags for flow direction -->
-                                            <input type="hidden" id="pvTo-flag" value="{{ $inverterFlowInfo['pvTo'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="toLoad-flag" value="{{ $inverterFlowInfo['toLoad'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="toSmartLoad-flag" value="{{ $inverterFlowInfo['toSmartLoad'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="toUpsLoad-flag" value="{{ $inverterFlowInfo['toUpsLoad'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="toHomeLoad-flag" value="{{ $inverterFlowInfo['toHomeLoad'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="toGrid-flag" value="{{ $inverterFlowInfo['toGrid'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="toBat-flag" value="{{ $inverterFlowInfo['toBat'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="gridTo-flag" value="{{ $inverterFlowInfo['gridTo'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="genTo-flag" value="{{ $inverterFlowInfo['genTo'] ?? false ? 'true' : 'false' }}">
-                                            <input type="hidden" id="existsGrid-flag" value="{{ $inverterFlowInfo['existsGrid'] ?? false ? 'true' : 'false' }}">
                                             
                                             <!-- Simple Table for Additional Values -->
                                             <div class="table-responsive mt-4">

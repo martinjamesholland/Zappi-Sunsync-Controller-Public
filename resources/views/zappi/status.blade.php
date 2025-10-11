@@ -3,6 +3,7 @@
 @section('title', 'Zappi Status - Solar Battery EV Charger')
 
 @section('styles')
+<link href="{{ asset('css/energy-flow.css') }}" rel="stylesheet">
 <style>
     pre {
         background-color: #f8f9fa;
@@ -73,6 +74,229 @@
                 </div>
                 <div class="card-body">
                     <div id="status-timestamp" class="text-muted small mb-2">Last updated: {{ date('Y-m-d H:i:s') }}</div>
+                    
+                    @if(isset($zappiData['zappi']) && count($zappiData['zappi']) > 0)
+                    <!-- Zappi Energy Flow Visualization -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="mb-0">Zappi Energy Flow</h4>
+                                    <small class="text-muted">Live power flow through Zappi charger</small>
+                                </div>
+                                <div class="card-body">
+                                    @php
+                                        $zappi = $zappiData['zappi'][0];
+                                        // Clean grid data - ignore values close to zero
+                                        $gridPower = ($zappi['grd'] ?? 0);
+                                        if($gridPower < 25 && $gridPower > -25){
+                                            $gridPower = 0;
+                                        }
+                                        $genPower = $zappi['gen'] ?? 0;
+                                        $divPower = $zappi['div'] ?? 0;
+                                    @endphp
+                                    
+                                    <!-- Data Source Indicator -->
+                                    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                                        <span class="energy-percentage d-inline-flex align-items-center px-2 py-1 rounded" style="font-size: 0.95em; background: #e3fcec; color: #008939;">
+                                            <i class="bi bi-ev-station me-1"></i>
+                                            <strong>Zappi Data</strong>
+                                            <span class="ms-1">As of: {{ isset($zappi['gen']) ? \Carbon\Carbon::createFromFormat('d-m-Y H:i:s', $zappi['dat'] . ' ' . $zappi['tim'], 'UTC')->timezone('Europe/London')->diffForHumans() : 'N/A' }}</span>
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Zappi Energy Flow Container -->
+                                    <div class="energy-flow-container" style="max-width: 700px; min-width: 300px; margin: 0 auto; min-height: 500px; position: relative;">
+                                        <!-- SVG Layer: Zappi flow paths -->
+                                        <svg id="energy-flow-svg" width="100%" viewBox="0 0 700 500" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 1; pointer-events: none;">
+                                            
+                                            <!-- Solar/Generated to Inverter Path -->
+                                            <path id="path-solar-to-inverter" 
+                                                  stroke="{{ $genPower > 0 ? '#ffc354' : '#cccccc' }}" 
+                                                  stroke-width="3" 
+                                                  fill="none" 
+                                                  class="path-line"
+                                                  d="M 100 150 L 200 150 L 200 150 L 320 150">
+                                                <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                            </path>
+                                            @if($genPower > 0)
+                                            <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                <animateMotion dur="2.5s" rotate="auto" repeatCount="indefinite">
+                                                    <mpath xlink:href="#path-solar-to-inverter"/>
+                                                </animateMotion>
+                                            </image>
+                                            @endif
+
+                                            <!-- Grid to Zappi Path -->
+                                            <path id="path-grid-to-zappi" 
+                                                  stroke="{{ $gridPower != 0 ? '#90caf9' : '#cccccc' }}" 
+                                                  stroke-width="3" 
+                                                  fill="none" 
+                                                  class="path-line"
+                                                  d="{{ $gridPower < 0 ? 'M 300 150 L 400 150 L 400 50 L 520 50' : 'M 560 70 L 450 70 L 450 150 L 370 150' }}">
+                                                <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                            </path>
+                                            @if($gridPower != 0)
+                                            <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                <animateMotion dur="2.8s" rotate="auto" repeatCount="indefinite">
+                                                    <mpath xlink:href="#path-grid-to-zappi"/>
+                                                </animateMotion>
+                                            </image>
+                                            @endif
+
+                                            <!-- Zappi to Car Path -->
+                                            @php
+                                                $evStatusColors = [
+                                                    'A' => '#aaaaaa',  // Gray for Disconnected
+                                                    'B1' => '#90caf9', // Blue for Connected
+                                                    'B2' => '#9c27b0', // Purple for Waiting
+                                                    'C1' => '#ffc354', // Yellow for Ready
+                                                    'C2' => '#66bb6a', // Green for Charging
+                                                    'F' => '#f44336'   // Red for Fault
+                                                ];
+                                                
+                                                $currentStatus = $zappi['pst'] ?? 'A';
+                                                $pathColor = $evStatusColors[$currentStatus] ?? '#aaaaaa';
+                                            @endphp
+                                            <path id="path-zappi-to-car" 
+                                                  stroke="{{ $pathColor }}" 
+                                                  stroke-width="3" 
+                                                  fill="none" 
+                                                  class="path-line"
+                                                  d="M 510 300 L 580 300 L 590 300 L 600 300">
+                                                <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                            </path>
+                                            @if($currentStatus == 'C2' || $currentStatus == 'B2')
+                                            <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qxbF3qGGvUecg8xNSWUkNr+Qlo2RrbT/Mf8mQJh4YcWno8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFfgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                <animateMotion dur="3.0s" rotate="auto" repeatCount="indefinite">
+                                                    <mpath xlink:href="#path-zappi-to-car"/>
+                                                </animateMotion>
+                                            </image>
+                                            @endif
+                                            
+                                            <!-- Zappi to Diversion Path (to grid connector area) -->
+                                            <path id="path-zappi-to-grid" 
+                                                  stroke="{{ $divPower > 0 ? '#26c6da' : '#cccccc' }}" 
+                                                  stroke-width="2" 
+                                                  fill="none" 
+                                                  class="path-line"
+                                                  d="M 450 150 L 450 250 L 450 300 L 470 300">
+                                                <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                            </path>
+                                            @if($divPower != 0)
+                                            <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qzb F3qGGvUecg8xNSWUkNr+Qlo2RzbT/Mf8mQJh4YcWho8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFvgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                <animateMotion dur="3.3s" rotate="auto" repeatCount="indefinite">
+                                                    <mpath xlink:href="#path-zappi-to-grid"/>
+                                                </animateMotion>
+                                            </image>
+                                            @endif
+                                            
+                                            <!-- Inverter to House Path -->
+                                            @php
+                                                $housePower = $gridPower + $genPower - $divPower;
+                                            @endphp
+                                            <path id="path-inverter-to-house" 
+                                                  stroke="{{ $housePower > 0 ? '#f06292' : '#cccccc' }}" 
+                                                  stroke-width="2" 
+                                                  fill="none" 
+                                                  class="path-line"
+                                                  d="M 350 180 L 350 200 L 210 200 L 210 250">
+                                                <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
+                                            </path>
+                                            @if($housePower > 0)
+                                            <image x="-10px" y="-10px" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAANdJREFUSEvtlUEOgjAUROdHvAceREPPgAuX3qzbF3qGGvUecg8xNSWUkNr+Qlo2RzbT/Mf8mQJh4YcWho8fBGh1KLF6KbzXgsSpGa+Q00Kr/lqRvtVPEJXQunEhnDYdYB14IIODwAv4IN6QuUFzIcEW5YKwNc0Bid6DVEgUYILT930FQPUhXml7FjZQTjNnooDOQdFKAJWpLu0um2E4o9kz8QwShrMOUt+cdZBruNdBzuF+wKOW0HR0A+3axGjzvkVFK8dVdFvj0yYDcv/hovcgFvgHRDf4AWpe+Bmtf04QAAAAAElFTkSuQmCC" style="width: 20px; height: 20px;">
+                                                <animateMotion dur="3.3s" rotate="auto" repeatCount="indefinite">
+                                                    <mpath xlink:href="#path-inverter-to-house"/>
+                                                </animateMotion>
+                                            </image>
+                                            @endif
+                                        </svg>
+
+                                        <!-- Node Definitions (Zappi-Only) -->
+                                        
+                                        <!-- Solar/Generated Power Node (Top Left) -->
+                                        <div class="energy-node" style="position: absolute; top: 120px; left: 10%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                            <img src="{{ asset('images/icons/solar-panel.png') }}" alt="Generated Power" style="width: 55px; height: 55px;">
+                                            <div class="energy-node-label">Solar/Gen</div>
+                                            <div class="energy-value" style="color: #ffc354; font-weight: bold;">{{ number_format($genPower, 0) }}W</div>
+                                        </div>
+
+                                        <!-- Grid Node (Top Right) -->
+                                        <div class="energy-node" style="position: absolute; top: 30px; right: 15%; transform: translateX(50%); z-index: 3; width: 100px; text-align: center;">
+                                            <img src="{{ asset('images/icons/power-grid.png') }}" alt="Power Grid" style="width: 55px; height: 55px;">
+                                            <div class="energy-node-label">Grid</div>
+                                            <div class="energy-value" style="color: #90caf9; font-weight: bold;">{{ number_format(abs($gridPower), 0) }}W</div>
+                                            <small class="text-muted">{{ $gridPower > 0 ? 'Import' : ($gridPower < 0 ? 'Export' : 'None') }}</small>
+                                        </div>
+
+                                        <!-- Inverter Node (Center Top) -->
+                                        <div class="energy-node inverter-node" style="position: absolute; top: 100px; left: 50%; transform: translateX(-50%); z-index: 10; width: 120px; text-align: center;">
+                                            <div class="energy-node-label">Inverter</div>
+                                            <img src="{{ asset('images/icons/inverter.png') }}" alt="Inverter" style="width: 60px; height: 60px;">
+                                        </div>
+
+                                        <!-- Zappi Charger Node (Right Center) -->
+                                        <div class="energy-node" style="position: absolute; top: 250px; left: 70%; transform: translateX(-50%); z-index: 3; width: 110px; text-align: center;">
+                                            <img src="{{ asset('images/icons/ev-charger.png') }}" alt="Zappi Charger" style="width: 65px; height: 65px;">
+                                            <div class="energy-node-label">Zappi</div>
+                                            <div class="energy-value" style="color: #26c6da; font-weight: bold;">{{ number_format($divPower, 0) }}W</div>
+                                        </div>
+                                        
+                                        <!-- House/Home Load Node (Bottom Left) -->
+                                        @php
+                                            $housePower = $gridPower + $genPower - $divPower;
+                                        @endphp
+                                        <div class="energy-node" style="position: absolute; top: 250px; left: 30%; transform: translateX(-50%); z-index: 3; width: 100px; text-align: center;">
+                                            <img src="{{ asset('images/icons/house.png') }}" alt="House" style="width: 55px; height: 55px;">
+                                            <div class="energy-node-label">House</div>
+                                            <div class="energy-value" style="color: #f06292; font-weight: bold;">{{ number_format(abs($housePower), 0) }}W</div>
+                                        </div>
+
+                                        @php
+                                            // Map status codes to human-readable text
+                                            $evStatusMap = [
+                                                'A' => ['text' => 'EV Disconnected', 'class' => 'bg-secondary'],
+                                                'B1' => ['text' => 'EV Connected', 'class' => 'bg-info'],
+                                                'B2' => ['text' => 'Waiting for EV', 'class' => 'bg-info'],
+                                                'C1' => ['text' => 'EV Ready to Charge', 'class' => 'bg-warning'],
+                                                'C2' => ['text' => 'Charging', 'class' => 'bg-success'],
+                                                'F' => ['text' => 'Fault', 'class' => 'bg-danger']
+                                            ];
+                                            
+                                            $zappiModeMap = [
+                                                1 => ['text' => 'Fast', 'class' => 'bg-danger'],
+                                                2 => ['text' => 'Eco', 'class' => 'bg-warning'],
+                                                3 => ['text' => 'Eco+', 'class' => 'bg-success'],
+                                                4 => ['text' => 'Stopped', 'class' => 'bg-secondary']
+                                            ];
+                                            
+                                            $statusMap = [
+                                                1 => 'Paused',
+                                                3 => 'Diverting/Charging',
+                                                5 => 'Complete'
+                                            ];
+                                        @endphp
+
+                                        <!-- Car/EV Node (Right) -->
+                                        <div class="energy-node" style="position: absolute; top: 250px; right: 10%; transform: translateX(50%); z-index: 3; width: 110px; text-align: center;">
+                                            <img src="{{ asset('images/icons/car.png') }}" alt="Car" style="width: 60px; height: 60px;">
+                                            <div class="energy-node-label">EV</div>
+                                            <div class="badge {{ $evStatusMap[$currentStatus]['class'] ?? 'bg-secondary' }} mb-1" style="font-size: 0.65em;">
+                                                {{ $evStatusMap[$currentStatus]['text'] ?? 'Unknown' }}
+                                            </div>
+                                            <div class="badge {{ $zappiModeMap[$zappi['zmo']]['class'] ?? 'bg-secondary' }}" style="font-size: 0.65em;">
+                                                {{ $zappiModeMap[$zappi['zmo']]['text'] ?? 'Unknown' }}
+                                            </div>
+                                            <div class="mt-2" style="font-size: 0.7em; color: #666;">
+                                                <strong>Last Charge:</strong><br>{{ number_format($zappi['che'] ?? 0, 2) }} kWh
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     
                     <ul class="nav nav-tabs" id="myTab" role="tablist">
                         <li class="nav-item" role="presentation">
@@ -645,18 +869,22 @@
         }
 
         // Toggle auto-refresh
-        autoRefresh.addEventListener('change', function() {
-            if (this.checked) {
-                startAutoRefresh();
-            } else {
-                stopAutoRefresh();
-            }
-        });
+        if (autoRefresh) {
+            autoRefresh.addEventListener('change', function() {
+                if (this.checked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+        }
 
         // Manual refresh button
-        refreshBtn.addEventListener('click', function() {
-            refreshData();
-        });
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                refreshData();
+            });
+        }
 
         function refreshData() {
             fetch('{{ url("/zappi/status") }}', {
