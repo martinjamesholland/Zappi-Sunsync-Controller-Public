@@ -30,3 +30,4 @@ yarn-error.log
 /.cursor/rules
 .cursor/.DS_Store
 .cursor/rules/.DS_Store
+/storage
