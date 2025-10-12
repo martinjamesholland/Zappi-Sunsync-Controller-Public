@@ -29,9 +29,19 @@
                     <div class="row mb-4">
                         <div class="col-md-12">
                             <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">SunSync Time Slot Configuration</h6>
-                                    <small class="text-muted">Configure the 6 time slots that control battery charging and discharging</small>
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">SunSync Time Slot Configuration</h6>
+                                        <small class="text-muted">Configure the 6 time slots that control battery charging and discharging</small>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-info btn-sm me-2" id="refreshInverterBtn">
+                                            <i class="bi bi-arrow-clockwise"></i> Refresh Current Values
+                                        </button>
+                                        <button type="button" class="btn btn-success btn-sm" id="syncToInverterBtn">
+                                            <i class="bi bi-cloud-upload"></i> Sync to Inverter Now
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <form action="{{ route('ev-charging.settings.update') }}" method="POST" id="timeSlotSettingsForm">
@@ -44,6 +54,7 @@
                                                         <th>Time</th>
                                                         <th>Battery Cap (%)</th>
                                                         <th style="text-align: center;">Grid Charge</th>
+                                                        <th>Current Inverter Value</th>
                                                         <th>Description</th>
                                                     </tr>
                                                 </thead>
@@ -67,6 +78,17 @@
                                                                 </label>
                                                             </div>
                                                         </td>
+                                                        <td>
+                                                            @if(isset($inverterSettings))
+                                                                <small class="text-muted">
+                                                                    Time: {{ $inverterSettings['sellTime1'] ?? 'N/A' }}<br>
+                                                                    Cap: {{ $inverterSettings['cap1'] ?? 'N/A' }}%<br>
+                                                                    Grid: {{ (($inverterSettings['time1on'] ?? false) === true || ($inverterSettings['time1on'] ?? false) === 'true') ? 'ON' : 'OFF' }}
+                                                                </small>
+                                                            @else
+                                                                <small class="text-muted">Loading...</small>
+                                                            @endif
+                                                        </td>
                                                         <td><small class="text-muted">Midnight to early morning</small></td>
                                                     </tr>
                                                     <tr>
@@ -87,6 +109,17 @@
                                                                     <small>{{ ($settings['time_2_on'] ?? 'true') === 'true' || ($settings['time_2_on'] ?? 'true') === '1' ? 'ON' : 'OFF' }}</small>
                                                                 </label>
                                                             </div>
+                                                        </td>
+                                                        <td>
+                                                            @if(isset($inverterSettings))
+                                                                <small class="text-muted">
+                                                                    Time: {{ $inverterSettings['sellTime2'] ?? 'N/A' }}<br>
+                                                                    Cap: {{ $inverterSettings['cap2'] ?? 'N/A' }}%<br>
+                                                                    Grid: {{ (($inverterSettings['time2on'] ?? false) === true || ($inverterSettings['time2on'] ?? false) === 'true') ? 'ON' : 'OFF' }}
+                                                                </small>
+                                                            @else
+                                                                <small class="text-muted">Loading...</small>
+                                                            @endif
                                                         </td>
                                                         <td><small class="text-muted">Early morning charging</small></td>
                                                     </tr>
@@ -109,6 +142,17 @@
                                                                 </label>
                                                             </div>
                                                         </td>
+                                                        <td>
+                                                            @if(isset($inverterSettings))
+                                                                <small class="text-muted">
+                                                                    Time: {{ $inverterSettings['sellTime3'] ?? 'N/A' }}<br>
+                                                                    Cap: {{ $inverterSettings['cap3'] ?? 'N/A' }}%<br>
+                                                                    Grid: {{ (($inverterSettings['time3on'] ?? false) === true || ($inverterSettings['time3on'] ?? false) === 'true') ? 'ON' : 'OFF' }}
+                                                                </small>
+                                                            @else
+                                                                <small class="text-muted">Loading...</small>
+                                                            @endif
+                                                        </td>
                                                         <td><small class="text-muted">Dawn period</small></td>
                                                     </tr>
                                                     <tr>
@@ -130,6 +174,17 @@
                                                                 </label>
                                                             </div>
                                                         </td>
+                                                        <td>
+                                                            @if(isset($inverterSettings))
+                                                                <small class="text-muted">
+                                                                    Time: {{ $inverterSettings['sellTime4'] ?? 'N/A' }}<br>
+                                                                    Cap: {{ $inverterSettings['cap4'] ?? 'N/A' }}%<br>
+                                                                    Grid: {{ (($inverterSettings['time4on'] ?? false) === true || ($inverterSettings['time4on'] ?? false) === 'true') ? 'ON' : 'OFF' }}
+                                                                </small>
+                                                            @else
+                                                                <small class="text-muted">Loading...</small>
+                                                            @endif
+                                                        </td>
                                                         <td><small class="text-muted">Morning period</small></td>
                                                     </tr>
                                                     <tr class="table-warning">
@@ -144,6 +199,17 @@
                                                         </td>
                                                         <td style="text-align: center;">
                                                             <small class="text-muted">Auto</small>
+                                                        </td>
+                                                        <td>
+                                                            @if(isset($inverterSettings))
+                                                                <small class="text-muted">
+                                                                    Time: {{ $inverterSettings['sellTime5'] ?? 'N/A' }}<br>
+                                                                    Cap: {{ $inverterSettings['cap5'] ?? 'N/A' }}%<br>
+                                                                    Grid: {{ (($inverterSettings['time5on'] ?? false) === true || ($inverterSettings['time5on'] ?? false) === 'true') ? 'ON' : 'OFF' }}
+                                                                </small>
+                                                            @else
+                                                                <small class="text-muted">Loading...</small>
+                                                            @endif
                                                         </td>
                                                         <td><small class="text-muted"><strong>Primary EV charging slot</strong> (Auto-controlled)</small></td>
                                                     </tr>
@@ -165,6 +231,17 @@
                                                                     <small>{{ ($settings['time_6_on'] ?? 'true') === 'true' || ($settings['time_6_on'] ?? 'true') === '1' ? 'ON' : 'OFF' }}</small>
                                                                 </label>
                                                             </div>
+                                                        </td>
+                                                        <td>
+                                                            @if(isset($inverterSettings))
+                                                                <small class="text-muted">
+                                                                    Time: {{ $inverterSettings['sellTime6'] ?? 'N/A' }}<br>
+                                                                    Cap: {{ $inverterSettings['cap6'] ?? 'N/A' }}%<br>
+                                                                    Grid: {{ (($inverterSettings['time6on'] ?? false) === true || ($inverterSettings['time6on'] ?? false) === 'true') ? 'ON' : 'OFF' }}
+                                                                </small>
+                                                            @else
+                                                                <small class="text-muted">Loading...</small>
+                                                            @endif
                                                         </td>
                                                         <td><small class="text-muted">Night period</small></td>
                                                     </tr>
@@ -358,6 +435,29 @@ No settings update needed - all values already match
     </div>
 </div>
 
+<!-- Sync Progress Modal -->
+<div class="modal fade" id="syncProgressModal" tabindex="-1" aria-labelledby="syncProgressModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="syncProgressModalLabel">
+                    <span class="spinner-border spinner-border-sm me-2" id="syncSpinner"></span>
+                    Syncing to Inverter
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div id="syncProgressSteps">
+                    <!-- Steps will be added dynamically here -->
+                </div>
+                <div id="syncProgressMessage" class="mt-3 alert" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="syncCloseBtn" data-bs-dismiss="modal" disabled>Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Test Mode Modal -->
 <div class="modal fade" id="testModeModal" tabindex="-1" aria-labelledby="testModeModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -410,6 +510,57 @@ No settings update needed - all values already match
     padding: 0.5rem;
     border-radius: 0.25rem;
     margin: 0.25rem 0;
+}
+#syncProgressSteps {
+    max-height: 500px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.25rem;
+}
+.sync-step {
+    background-color: #fff;
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease-out;
+}
+.sync-step:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.sync-step.updated {
+    animation: pulse 0.5s ease-out;
+}
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+}
+.json-output {
+    background-color: #282c34;
+    color: #abb2bf;
+    border-radius: 0.25rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 0.85rem;
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.json-output code {
+    color: #abb2bf;
+    white-space: pre;
 }
 </style>
 
@@ -493,6 +644,478 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Refresh Inverter Values button
+    const refreshBtn = document.getElementById('refreshInverterBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            const btn = this;
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Refreshing...';
+
+            fetch('{{ route("ev-charging.get-inverter-settings") }}', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.settings) {
+                    // Update all the current inverter value cells
+                    updateInverterValueCell(1, data.settings);
+                    updateInverterValueCell(2, data.settings);
+                    updateInverterValueCell(3, data.settings);
+                    updateInverterValueCell(4, data.settings);
+                    updateInverterValueCell(5, data.settings);
+                    updateInverterValueCell(6, data.settings);
+                    
+                    // Show success message
+                    showToast('Success', 'Inverter values refreshed successfully', 'success');
+                } else {
+                    showToast('Error', data.message || 'Failed to refresh inverter values', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error', 'Failed to refresh inverter values', 'error');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            });
+        });
+    }
+
+    // Sync to Inverter Now button
+    const syncBtn = document.getElementById('syncToInverterBtn');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', function() {
+            if (!confirm('This will immediately push your current settings to the inverter. Continue?')) {
+                return;
+            }
+
+            const btn = this;
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Syncing...';
+
+            // Show the progress modal
+            const progressModal = new bootstrap.Modal(document.getElementById('syncProgressModal'));
+            progressModal.show();
+            
+            // Reset modal content
+            document.getElementById('syncProgressSteps').innerHTML = '';
+            document.getElementById('syncProgressMessage').style.display = 'none';
+            document.getElementById('syncSpinner').style.display = 'inline-block';
+            document.getElementById('syncCloseBtn').disabled = true;
+
+            // Use Server-Sent Events for real-time updates
+            const eventSource = new EventSource('{{ route("ev-charging.sync-now") }}?stream=true&_token={{ csrf_token() }}');
+            let allSteps = [];
+            let stepCounter = 0;
+            
+            eventSource.addEventListener('step', function(e) {
+                const stepData = JSON.parse(e.data);
+                
+                // Create unique identifier based on step number and base message
+                const baseMessage = stepData.message.split('(')[0].trim(); // Remove attempt info for matching
+                const stepKey = `${stepData.step}-${baseMessage}`;
+                
+                // Find if this step already exists (for updates)
+                const existingIndex = allSteps.findIndex(s => {
+                    const sBaseMessage = s.message.split('(')[0].trim();
+                    return s.step === stepData.step && sBaseMessage === baseMessage;
+                });
+                
+                if (existingIndex >= 0) {
+                    // Update existing step
+                    allSteps[existingIndex] = {...allSteps[existingIndex], ...stepData, id: allSteps[existingIndex].id};
+                } else {
+                    // Add new step with unique ID
+                    stepData.id = ++stepCounter;
+                    allSteps.push(stepData);
+                }
+                
+                // Display steps in real-time
+                displaySyncStepsRealtime(allSteps);
+            });
+            
+            eventSource.addEventListener('complete', function(e) {
+                const result = JSON.parse(e.data);
+                
+                // Close the event stream
+                eventSource.close();
+                
+                // Hide spinner
+                document.getElementById('syncSpinner').style.display = 'none';
+                
+                // Show final message
+                const messageDiv = document.getElementById('syncProgressMessage');
+                messageDiv.style.display = 'block';
+                
+                if (result.success) {
+                    messageDiv.className = 'mt-3 alert alert-success';
+                    messageDiv.innerHTML = '<strong>✓ Success!</strong><br>' + result.message;
+                    
+                    if (result.partial) {
+                        messageDiv.className = 'mt-3 alert alert-warning';
+                        messageDiv.innerHTML = '<strong>⚠ Partial Success</strong><br>' + result.message;
+                        if (result.verificationErrors && result.verificationErrors.length > 0) {
+                            messageDiv.innerHTML += '<br><small>Mismatches: ' + result.verificationErrors.slice(0, 5).join(', ') + '</small>';
+                        }
+                    }
+                    
+                    // Update modal title
+                    document.getElementById('syncProgressModalLabel').innerHTML = '✓ Sync Complete';
+                    
+                    // Refresh the inverter values after sync
+                    setTimeout(() => {
+                        document.getElementById('refreshInverterBtn')?.click();
+                    }, 2000);
+                } else {
+                    messageDiv.className = 'mt-3 alert alert-danger';
+                    messageDiv.innerHTML = '<strong>✗ Error</strong><br>' + (result.message || 'Failed to sync settings to inverter');
+                    
+                    // Update modal title
+                    document.getElementById('syncProgressModalLabel').innerHTML = '✗ Sync Failed';
+                }
+                
+                // Enable close button
+                document.getElementById('syncCloseBtn').disabled = false;
+                
+                // Re-enable sync button
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            });
+            
+            eventSource.onerror = function(error) {
+                console.error('EventSource error:', error);
+                eventSource.close();
+                
+                // Hide spinner
+                document.getElementById('syncSpinner').style.display = 'none';
+                
+                const messageDiv = document.getElementById('syncProgressMessage');
+                messageDiv.style.display = 'block';
+                messageDiv.className = 'mt-3 alert alert-danger';
+                messageDiv.innerHTML = '<strong>✗ Error</strong><br>Connection error during sync. Please check the logs.';
+                
+                document.getElementById('syncProgressModalLabel').innerHTML = '✗ Sync Failed';
+                document.getElementById('syncCloseBtn').disabled = false;
+                
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            };
+        });
+    }
 });
+
+function updateInverterValueCell(slotNumber, settings) {
+    const cells = document.querySelectorAll('td');
+    cells.forEach(cell => {
+        const content = cell.querySelector('small.text-muted');
+        if (content && content.textContent.includes('Time:') && content.textContent.includes('Cap:')) {
+            // Check if this is the right slot by counting rows
+            const row = cell.closest('tr');
+            const tbody = row.closest('tbody');
+            const rowIndex = Array.from(tbody.children).indexOf(row);
+            
+            if (rowIndex === slotNumber - 1) {
+                const timeKey = `sellTime${slotNumber}`;
+                const capKey = `cap${slotNumber}`;
+                const gridKey = `time${slotNumber}on`;
+                
+                const time = settings[timeKey] || 'N/A';
+                const cap = settings[capKey] || 'N/A';
+                const grid = (settings[gridKey] === true || settings[gridKey] === 'true') ? 'ON' : 'OFF';
+                
+                content.innerHTML = `Time: ${time}<br>Cap: ${cap}%<br>Grid: ${grid}`;
+            }
+        }
+    });
+}
+
+function displaySyncStepsRealtime(steps) {
+    const stepsContainer = document.getElementById('syncProgressSteps');
+    
+    steps.forEach((step) => {
+        const stepId = `step-${step.id}`;
+        let stepDiv = document.getElementById(stepId);
+        
+        if (!stepDiv) {
+            // Create new step element
+            stepDiv = document.createElement('div');
+            stepDiv.id = stepId;
+            stepDiv.className = 'sync-step mb-3 p-3 border rounded';
+            stepsContainer.appendChild(stepDiv);
+        } else {
+            // Add pulse animation for updates
+            stepDiv.classList.add('updated');
+            setTimeout(() => stepDiv.classList.remove('updated'), 500);
+        }
+        
+        let statusIcon = '';
+        let statusClass = '';
+        
+        switch(step.status) {
+            case 'success':
+                statusIcon = '<i class="bi bi-check-circle-fill text-success"></i>';
+                statusClass = 'border-success';
+                break;
+            case 'error':
+                statusIcon = '<i class="bi bi-x-circle-fill text-danger"></i>';
+                statusClass = 'border-danger';
+                break;
+            case 'warning':
+                statusIcon = '<i class="bi bi-exclamation-triangle-fill text-warning"></i>';
+                statusClass = 'border-warning';
+                break;
+            case 'in_progress':
+                statusIcon = '<span class="spinner-border spinner-border-sm text-primary"></span>';
+                statusClass = 'border-primary';
+                break;
+            default:
+                statusIcon = '<i class="bi bi-info-circle-fill text-info"></i>';
+                statusClass = 'border-info';
+        }
+        
+        // Update border class
+        stepDiv.className = 'sync-step mb-3 p-3 border rounded ' + statusClass;
+        
+        const uniqueId = `collapse-${stepId}`;
+        
+        let stepHTML = `
+            <div class="d-flex align-items-start">
+                <div class="me-3 fs-5">${statusIcon}</div>
+                <div class="flex-grow-1">
+                    <strong>Step ${step.step}:</strong> ${step.message}
+        `;
+        
+        if (step.details) {
+            stepHTML += `<br><small class="text-muted">${step.details}</small>`;
+        }
+        
+        // Add request/response toggle button if data exists
+        if (step.request || step.response || step.comparison || step.verificationErrors) {
+            stepHTML += `
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#${uniqueId}" aria-expanded="false">
+                        <i class="bi bi-code-square"></i> Show JSON Details
+                    </button>
+                </div>
+                <div class="collapse mt-2" id="${uniqueId}">
+            `;
+            
+            if (step.request) {
+                stepHTML += `
+                    <div class="mb-2">
+                        <strong class="text-primary">📤 Request:</strong>
+                        <pre class="json-output p-2 mt-1"><code>${JSON.stringify(step.request, null, 2)}</code></pre>
+                    </div>
+                `;
+            }
+            
+            if (step.response) {
+                stepHTML += `
+                    <div class="mb-2">
+                        <strong class="text-success">📥 Response:</strong>
+                        <pre class="json-output p-2 mt-1"><code>${JSON.stringify(step.response, null, 2)}</code></pre>
+                    </div>
+                `;
+            }
+            
+            if (step.comparison) {
+                stepHTML += `
+                    <div class="mb-2">
+                        <strong class="text-info">🔍 Comparison:</strong>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted">Expected Values:</small>
+                                <pre class="json-output p-2 mt-1"><code>${JSON.stringify(step.comparison.expected, null, 2)}</code></pre>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Actual Values:</small>
+                                <pre class="json-output p-2 mt-1"><code>${JSON.stringify(step.comparison.actual, null, 2)}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (step.verificationErrors && step.verificationErrors.length > 0) {
+                stepHTML += `
+                    <div class="mb-2">
+                        <strong class="text-danger">❌ Verification Errors:</strong>
+                        <ul class="mt-1 mb-0">
+                            ${step.verificationErrors.map(err => `<li><small>${err}</small></li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            stepHTML += `</div>`;
+        }
+        
+        stepHTML += `
+                </div>
+            </div>
+        `;
+        
+        stepDiv.innerHTML = stepHTML;
+    });
+    
+    // Scroll to bottom of steps
+    stepsContainer.scrollTop = stepsContainer.scrollHeight;
+}
+
+function displaySyncSteps(steps) {
+    const stepsContainer = document.getElementById('syncProgressSteps');
+    
+    // Track existing steps for animation
+    const existingSteps = {};
+    stepsContainer.querySelectorAll('.sync-step').forEach(div => {
+        const stepId = div.getAttribute('data-step-id');
+        if (stepId) existingSteps[stepId] = div;
+    });
+    
+    stepsContainer.innerHTML = '';
+    
+    steps.forEach((step, index) => {
+        const stepId = `${step.step}-${step.message}`;
+        const isUpdate = existingSteps.hasOwnProperty(stepId);
+        
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'sync-step mb-3 p-3 border rounded';
+        stepDiv.setAttribute('data-step-id', stepId);
+        
+        // Add updated class if this is an update
+        if (isUpdate) {
+            stepDiv.classList.add('updated');
+        }
+        
+        let statusIcon = '';
+        let statusClass = '';
+        
+        switch(step.status) {
+            case 'success':
+                statusIcon = '<i class="bi bi-check-circle-fill text-success"></i>';
+                statusClass = 'border-success';
+                break;
+            case 'error':
+                statusIcon = '<i class="bi bi-x-circle-fill text-danger"></i>';
+                statusClass = 'border-danger';
+                break;
+            case 'warning':
+                statusIcon = '<i class="bi bi-exclamation-triangle-fill text-warning"></i>';
+                statusClass = 'border-warning';
+                break;
+            case 'in_progress':
+                statusIcon = '<span class="spinner-border spinner-border-sm text-primary"></span>';
+                statusClass = 'border-primary';
+                break;
+            default:
+                statusIcon = '<i class="bi bi-info-circle-fill text-info"></i>';
+                statusClass = 'border-info';
+        }
+        
+        stepDiv.className += ' ' + statusClass;
+        
+        const uniqueId = `step-${index}-${Date.now()}`;
+        
+        let stepHTML = `
+            <div class="d-flex align-items-start">
+                <div class="me-3 fs-5">${statusIcon}</div>
+                <div class="flex-grow-1">
+                    <strong>Step ${step.step}:</strong> ${step.message}
+        `;
+        
+        if (step.details) {
+            stepHTML += `<br><small class="text-muted">${step.details}</small>`;
+        }
+        
+        // Add request/response toggle button if data exists
+        if (step.request || step.response || step.comparison || step.verificationErrors) {
+            stepHTML += `
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#${uniqueId}" aria-expanded="false">
+                        <i class="bi bi-code-square"></i> Show JSON Details
+                    </button>
+                </div>
+                <div class="collapse mt-2" id="${uniqueId}">
+            `;
+            
+            if (step.request) {
+                stepHTML += `
+                    <div class="mb-2">
+                        <strong class="text-primary">📤 Request:</strong>
+                        <pre class="json-output p-2 mt-1"><code>${JSON.stringify(step.request, null, 2)}</code></pre>
+                    </div>
+                `;
+            }
+            
+            if (step.response) {
+                stepHTML += `
+                    <div class="mb-2">
+                        <strong class="text-success">📥 Response:</strong>
+                        <pre class="json-output p-2 mt-1"><code>${JSON.stringify(step.response, null, 2)}</code></pre>
+                    </div>
+                `;
+            }
+            
+            if (step.comparison) {
+                stepHTML += `
+                    <div class="mb-2">
+                        <strong class="text-info">🔍 Comparison:</strong>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted">Expected Values:</small>
+                                <pre class="json-output p-2 mt-1"><code>${JSON.stringify(step.comparison.expected, null, 2)}</code></pre>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Actual Values:</small>
+                                <pre class="json-output p-2 mt-1"><code>${JSON.stringify(step.comparison.actual, null, 2)}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (step.verificationErrors && step.verificationErrors.length > 0) {
+                stepHTML += `
+                    <div class="mb-2">
+                        <strong class="text-danger">❌ Verification Errors:</strong>
+                        <ul class="mt-1 mb-0">
+                            ${step.verificationErrors.map(err => `<li><small>${err}</small></li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            stepHTML += `</div>`;
+        }
+        
+        stepHTML += `
+                </div>
+            </div>
+        `;
+        
+        stepDiv.innerHTML = stepHTML;
+        stepsContainer.appendChild(stepDiv);
+    });
+    
+    // Scroll to bottom of steps
+    stepsContainer.scrollTop = stepsContainer.scrollHeight;
+}
+
+function showToast(title, message, type = 'info') {
+    // Simple alert fallback - you can enhance this with Bootstrap toasts if needed
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    alert(`${icon} ${title}\n\n${message}`);
+}
 </script>
 @endsection 

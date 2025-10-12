@@ -5,12 +5,8 @@ use App\Http\Controllers\ZappiController;
 use App\Http\Controllers\SunSyncController;
 use App\Http\Controllers\EvChargingController;
 use App\Http\Controllers\SettingsController;
-<<<<<<< Updated upstream
-use App\Http\Controllers\AppKeySetupController;
-=======
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\HomeController;
->>>>>>> Stashed changes
 
 // Setup Wizard Routes - These should be first and excluded from setup check middleware
 Route::prefix('setup')->name('setup.')->group(function () {
@@ -36,16 +32,9 @@ Route::prefix('setup')->name('setup.')->group(function () {
     Route::get('/complete', [SetupController::class, 'complete'])->name('complete');
 });
 
-<<<<<<< Updated upstream
-// Other routes
-Route::get('/', function () {
-    return view('home');
-});
-=======
 // Application routes - protected by setup check middleware
 Route::middleware(['setup.complete'])->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
->>>>>>> Stashed changes
 
     Route::get('/zappi/status', [ZappiController::class, 'status'])->name('zappi.status');
 
@@ -57,6 +46,12 @@ Route::middleware(['setup.complete'])->group(function () {
     Route::post('/ev-charging/settings', [EvChargingController::class, 'updateSettings'])
         ->middleware('throttle:10,1')
         ->name('ev-charging.settings.update');
+    Route::get('/ev-charging/get-inverter-settings', [EvChargingController::class, 'getInverterSettings'])
+        ->middleware('throttle:60,1')
+        ->name('ev-charging.get-inverter-settings');
+    Route::match(['get', 'post'], '/ev-charging/sync-now', [EvChargingController::class, 'syncToInverterNow'])
+        ->middleware('throttle:10,1')
+        ->name('ev-charging.sync-now');
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');

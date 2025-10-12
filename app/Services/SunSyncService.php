@@ -374,11 +374,6 @@ class SunSyncService
                 $data = $response->json();
                 $settings = $data['data'] ?? null;
                 
-                if ($settings) {
-                    // Cache the settings
-                    \App\Models\SunSyncSetting::updateSettings($inverterSn, $settings);
-                }
-                
                 return $settings;
             }
             Log::error('SunSync get inverter settings failed: API request failed', [
@@ -458,7 +453,7 @@ class SunSyncService
         return $this->apiRequests;
     }
 
-    public function updateSystemModeSettings(string $inverterSn, array $settings): bool
+    public function updateSystemModeSettings(string $inverterSn, array $settings, bool $forceUpdate = false): bool
     {
         if (!$this->ensureAuthenticated()) {
             Log::error('SunSync update system mode settings failed: Authentication failed');
@@ -473,38 +468,42 @@ class SunSyncService
                 return false;
             }
 
-            // Check if specific settings have changed
-            $hasChanges = false;
+            // Check if specific settings have changed (skip if forced)
+            $hasChanges = $forceUpdate; // If forcing, always has changes
             
-            // Only check the specific settings we care about (sn, sellTime5, cap5, time5on)
-            $keysToCheck = ['sn', 'sellTime5', 'cap5', 'time5on', 'sellTime2'];
-            
-            foreach ($keysToCheck as $key) {
-                if (!isset($settings[$key])) {
-                    continue;
-                }
-                if ($key === 'sellTime2') {
-                    $newValue = '03:00';
-                } else{
-                $newValue = $settings[$key];
-                }
-                $currentValue = $currentSettings[$key] ?? null;
+            if (!$forceUpdate) {
+                // Only check the specific settings we care about (sn, sellTime5, cap5, time5on)
+                $keysToCheck = ['sn', 'sellTime5', 'cap5', 'time5on', 'sellTime2'];
                 
-                // Handle boolean vs string "false" comparison
-                if ($key === 'time5on') {
-                    // Normalize both values to boolean for comparison
-                    $newValueBool = is_bool($newValue) ? $newValue : $newValue === 'true' || $newValue === '1' || $newValue === 1;
-                    $currentValueBool = is_bool($currentValue) ? $currentValue : $currentValue === 'true' || $currentValue === '1' || $currentValue === 1;
-                    
-                    if ($newValueBool !== $currentValueBool) {
-                        $hasChanges = true;
-                        Log::info("SunSync setting {$key} changed: " . json_encode($currentValueBool) . " -> " . json_encode($newValueBool));
+                foreach ($keysToCheck as $key) {
+                    if (!isset($settings[$key])) {
+                        continue;
                     }
-                } else if ($newValue !== $currentValue) {
-                    $hasChanges = true;
-                    Log::info("SunSync setting {$key} changed: {$currentValue} -> {$newValue}");
-                }
+                    if ($key === 'sellTime2') {
+                        $newValue = '03:00';
+                    } else{
+                    $newValue = $settings[$key];
+                    }
+                    $currentValue = $currentSettings[$key] ?? null;
+                    
+                    // Handle boolean vs string "false" comparison
+                    if ($key === 'time5on') {
+                        // Normalize both values to boolean for comparison
+                        $newValueBool = is_bool($newValue) ? $newValue : $newValue === 'true' || $newValue === '1' || $newValue === 1;
+                        $currentValueBool = is_bool($currentValue) ? $currentValue : $currentValue === 'true' || $currentValue === '1' || $currentValue === 1;
+                        
+                        if ($newValueBool !== $currentValueBool) {
+                            $hasChanges = true;
+                            Log::info("SunSync setting {$key} changed: " . json_encode($currentValueBool) . " -> " . json_encode($newValueBool));
+                        }
+                    } else if ($newValue !== $currentValue) {
+                        $hasChanges = true;
+                        Log::info("SunSync setting {$key} changed: {$currentValue} -> {$newValue}");
+                    }
 
+                }
+            } else {
+                Log::info('SunSync force update - skipping change detection');
             }
             
            //  If no changes, return success without making API call
@@ -515,6 +514,44 @@ class SunSyncService
 
             // Merge new settings with existing settings
             $mergedSettings = array_merge($currentSettings, $settings);
+            
+            // Normalize boolean values to match API expectations:
+            // - true stays as boolean true
+            // - false becomes string "false"
+            $booleanFields = [
+                'mondayOn', 'tuesdayOn', 'wednesdayOn', 'thursdayOn', 'fridayOn', 'saturdayOn', 'sundayOn',
+                'time1on', 'time2on', 'time3on', 'time4on', 'time5on', 'time6on',
+                'genTime1on', 'genTime2on', 'genTime3on', 'genTime4on', 'genTime5on', 'genTime6on'
+            ];
+            
+            foreach ($booleanFields as $field) {
+                if (isset($mergedSettings[$field])) {
+                    $value = $mergedSettings[$field];
+                    // Convert to proper format: true stays true, everything else becomes string "false"
+                    if ($value === true || $value === 'true' || $value === 1 || $value === '1') {
+                        $mergedSettings[$field] = true;
+                    } else {
+                        $mergedSettings[$field] = "false";
+                    }
+                }
+            }
+            
+            // Ensure all numeric strings remain strings (not converted to numbers)
+            $stringFields = ['cap1', 'cap2', 'cap3', 'cap4', 'cap5', 'cap6',
+                            'sellTime1Pac', 'sellTime2Pac', 'sellTime3Pac', 'sellTime4Pac', 'sellTime5Pac', 'sellTime6Pac',
+                            'sellTime1Volt', 'sellTime2Volt', 'sellTime3Volt', 'sellTime4Volt', 'sellTime5Volt', 'sellTime6Volt'];
+            
+            foreach ($stringFields as $field) {
+                if (isset($mergedSettings[$field])) {
+                    $mergedSettings[$field] = (string)$mergedSettings[$field];
+                }
+            }
+            
+            // Log the merged settings before sending
+            Log::info('SunSync sending normalized settings', [
+                'inverter_sn' => $inverterSn,
+                'merged_settings' => $mergedSettings
+            ]);
 
             $response = Http::withToken($this->accessToken)
                 ->post($this->baseUrl . "/api/v1/common/setting/{$inverterSn}/set", $mergedSettings);
@@ -541,9 +578,13 @@ class SunSyncService
                 $success = $data['success'] ?? false;
                 
                 if ($success) {
-                    // Update cached settings after successful API call
-                    \App\Models\SunSyncSetting::updateSettings($inverterSn, $mergedSettings);
-                    Log::info('SunSync settings updated successfully');
+                    Log::info('SunSync settings updated successfully', [
+                        'response' => $data
+                    ]);
+                } else {
+                    Log::warning('SunSync API returned successful HTTP but success=false', [
+                        'response' => $data
+                    ]);
                 }
                 
                 return $success;
@@ -551,7 +592,8 @@ class SunSyncService
             
             Log::error('SunSync update system mode settings failed', [
                 'status' => $response->status(),
-                'response' => $response->json()
+                'response' => $response->json(),
+                'body' => $response->body()
             ]);
             return false;
         } catch (ConnectionException $e) {

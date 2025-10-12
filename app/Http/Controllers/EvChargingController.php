@@ -136,79 +136,67 @@ class EvChargingController extends Controller
             'time5on' => "false"
         ];
 
-        // Try to get cached settings first
-        $cacheTtl = config('sunsync.cache.settings_ttl', 60);
-        $cachedRecord = SunSyncSetting::where('last_updated', '>=', Carbon::now()->timezone('Europe/London')->subSeconds($cacheTtl))
-            ->latest()
-            ->first();
+        // Get plant and inverter info - always fetch fresh data
+        $plantInfo = $this->sunSyncService->getPlantInfo();
+        $apiCalls[] = [
+            'name' => 'SunSync API - Get Plant Info',
+            'endpoint' => 'GET /api/v1/plants',
+            'request' => null,
+            'response' => $plantInfo
+        ];
         
-        if ($cachedRecord) {
-            $currentSettings = $cachedRecord->settings;
-            $inverterSn = $cachedRecord->inverter_sn;
-            $logs[] = "Using cached settings from " . $cachedRecord->last_updated->format('Y-m-d H:i:s');
-        } else {
-            // Get plant and inverter info
-            $plantInfo = $this->sunSyncService->getPlantInfo();
-            $apiCalls[] = [
-                'name' => 'SunSync API - Get Plant Info',
-                'endpoint' => 'GET /api/v1/plants',
-                'request' => null,
-                'response' => $plantInfo
-            ];
+        // Add a debug log entry
+        $logs[] = "Debug: Plant Info API Call added to apiCalls array - " . (is_null($plantInfo) ? "Response is NULL" : "Response has data");
+        
+        if (!$plantInfo) {
+            $logs[] = "Error: Failed to get plant information";
             
-            // Add a debug log entry
-            $logs[] = "Debug: Plant Info API Call added to apiCalls array - " . (is_null($plantInfo) ? "Response is NULL" : "Response has data");
-            
-            if (!$plantInfo) {
-                $logs[] = "Error: Failed to get plant information";
-                
-                // Add diagnostic information
-                try {
-                    // Check if we can access the API at all
-                    $testResponse = Http::timeout(10)->get('https://api.sunsynk.net/status');
-                    if ($testResponse->successful()) {
-                        $logs[] = "Debug: SunSync API appears to be online but authentication may have failed";
-                    } else {
-                        $logs[] = "Debug: SunSync API appears to be offline or unreachable (HTTP " . $testResponse->status() . ")";
-                    }
-                } catch (\Exception $e) {
-                    $logs[] = "Debug: SunSync API connection error: " . $e->getMessage();
+            // Add diagnostic information
+            try {
+                // Check if we can access the API at all
+                $testResponse = Http::timeout(10)->get('https://api.sunsynk.net/status');
+                if ($testResponse->successful()) {
+                    $logs[] = "Debug: SunSync API appears to be online but authentication may have failed";
+                } else {
+                    $logs[] = "Debug: SunSync API appears to be offline or unreachable (HTTP " . $testResponse->status() . ")";
                 }
-                
-                // Check credentials
-                $username = config('services.sunsync.username');
-                $logs[] = "Debug: SunSync username is " . (empty($username) ? "empty" : "configured");
-                
-                // Suggest solutions
-                $logs[] = "Troubleshooting steps:";
-                $logs[] = "1. Check your internet connection";
-                $logs[] = "2. Verify SunSync credentials in Settings";
-                $logs[] = "3. Try again later as the API might be temporarily unavailable";
-                
-                return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get SunSync plant information. Please check your SunSync credentials in Settings or try again later.');
+            } catch (\Exception $e) {
+                $logs[] = "Debug: SunSync API connection error: " . $e->getMessage();
             }
-
-            $inverterInfo = $this->sunSyncService->getInverterInfo($plantInfo['id']);
-            $apiCalls[] = [
-                'name' => 'SunSync API - Get Inverter Info',
-                'endpoint' => "GET /api/v1/plant/{$plantInfo['id']}/inverters",
-                'request' => ['plantId' => $plantInfo['id']],
-                'response' => $inverterInfo
-            ];
-            if (!$inverterInfo) {
-                $logs[] = "Error: Failed to get inverter information";
-                return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get SunSync inverter information. Please check your SunSync credentials in Settings.');
-            }
-
-            $inverterSn = $inverterInfo['sn'];
-            $currentSettings = $this->sunSyncService->getInverterSettings($inverterSn);
-            $apiCalls[] = [
-                'name' => 'SunSync API - Get Inverter Settings',
-                'endpoint' => "GET /api/v1/common/setting/{$inverterSn}/read",
-                'request' => ['inverterSn' => $inverterSn],
-                'response' => $currentSettings
-            ];
+            
+            // Check credentials
+            $username = config('services.sunsync.username');
+            $logs[] = "Debug: SunSync username is " . (empty($username) ? "empty" : "configured");
+            
+            // Suggest solutions
+            $logs[] = "Troubleshooting steps:";
+            $logs[] = "1. Check your internet connection";
+            $logs[] = "2. Verify SunSync credentials in Settings";
+            $logs[] = "3. Try again later as the API might be temporarily unavailable";
+            
+            return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get SunSync plant information. Please check your SunSync credentials in Settings or try again later.');
         }
+
+        $inverterInfo = $this->sunSyncService->getInverterInfo($plantInfo['id']);
+        $apiCalls[] = [
+            'name' => 'SunSync API - Get Inverter Info',
+            'endpoint' => "GET /api/v1/plant/{$plantInfo['id']}/inverters",
+            'request' => ['plantId' => $plantInfo['id']],
+            'response' => $inverterInfo
+        ];
+        if (!$inverterInfo) {
+            $logs[] = "Error: Failed to get inverter information";
+            return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get SunSync inverter information. Please check your SunSync credentials in Settings.');
+        }
+
+        $inverterSn = $inverterInfo['sn'];
+        $currentSettings = $this->sunSyncService->getInverterSettings($inverterSn);
+        $apiCalls[] = [
+            'name' => 'SunSync API - Get Inverter Settings',
+            'endpoint' => "GET /api/v1/common/setting/{$inverterSn}/read",
+            'request' => ['inverterSn' => $inverterSn],
+            'response' => $currentSettings
+        ];
 
         if (!$currentSettings) {
             $logs[] = "Error: Failed to get current inverter settings";
@@ -313,9 +301,9 @@ class EvChargingController extends Controller
                 'sn' => $inverterSn,
 
                 "sellTime1" => $settings['sell_time_1'] ?? "00:00",
-                "sellTime2" => $settings['sell_time_2'] ?? "03:00",
-                "sellTime3" => $settings['sell_time_3'] ?? "05:30",
-                "sellTime4" => $settings['sell_time_4'] ?? "08:00",
+                "sellTime2" => $settings['sell_time_2'] ?? "02:00",
+                "sellTime3" => $settings['sell_time_3'] ?? "04:30",
+                "sellTime4" => $settings['sell_time_4'] ?? "05:30",
                 "sellTime5" => $newSettings['sellTime5'],
                 "sellTime6" => $settings['sell_time_6'] ?? "23:30",
 
@@ -328,7 +316,7 @@ class EvChargingController extends Controller
 
                 "cap1" => $settings['cap_1'] ?? "100",
                 "cap2" => $settings['cap_2'] ?? "100",
-                "cap3" => $settings['cap_3'] ?? "25",
+                "cap3" => $settings['cap_3'] ?? "100",
                 "cap4" => $settings['cap_4'] ?? "25",
                 "cap5" => $newSettings['cap5'],
                 "cap6" => $settings['cap_6'] ?? "100",
@@ -350,7 +338,7 @@ class EvChargingController extends Controller
 
                 "time1on" => ($settings['time_1_on'] ?? 'true') === 'true' ? true : "false",
                 "time2on" => ($settings['time_2_on'] ?? 'true') === 'true' ? true : "false",
-                "time3on" => ($settings['time_3_on'] ?? 'false') === 'true' ? true : "false",
+                "time3on" => ($settings['time_3_on'] ?? 'true') === 'true' ? true : "false",
                 "time4on" => ($settings['time_4_on'] ?? 'false') === 'true' ? true : "false", 
                 "time5on" => $newSettings['time5on'],  // Will be boolean true or string "false"
                 "time6on" => ($settings['time_6_on'] ?? 'true') === 'true' ? true : "false",
@@ -369,6 +357,14 @@ class EvChargingController extends Controller
             $logs[] = "- cap5: " . $newSettings['cap5'] . " (current: " . ($apiCurrentSettings['cap5'] ?? 'not set') . ")";
             $logs[] = "- time5on: " . ($newSettings['time5on'] ? 'true' : 'false') . " (current: " . (($apiCurrentSettings['time5on'] ?? false) ? 'true' : 'false') . ")";
             
+            $success = $this->sunSyncService->updateSystemModeSettings($inverterSn, $updateSettings);
+            $apiCalls[] = [
+                'name' => 'SunSync API - Update System Mode Settings',
+                'endpoint' => "POST /api/v1/common/setting/{$inverterSn}/set",
+                'request' => $updateSettings,
+                'response' => ['success' => $success]
+            ];
+            sleep(1);
             $success = $this->sunSyncService->updateSystemModeSettings($inverterSn, $updateSettings);
             
             $apiCalls[] = [
@@ -519,12 +515,754 @@ class EvChargingController extends Controller
             ], $success ? 200 : 400);
         }
 
+        // Get current inverter settings to display
+        $inverterSettings = null;
+        try {
+            $plantInfo = $this->sunSyncService->getPlantInfo();
+            if ($plantInfo) {
+                $inverterInfo = $this->sunSyncService->getInverterInfo($plantInfo['id']);
+                if ($inverterInfo) {
+                    $inverterSn = $inverterInfo['sn'];
+                    $inverterSettings = $this->sunSyncService->getInverterSettings($inverterSn);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to get inverter settings for display', [
+                'error' => $e->getMessage()
+            ]);
+        }
+
         return view('ev-charging.status', [
             'success' => $success,
             'message' => $errorMessage,
             'logs' => $logs,
             'apiCalls' => $maskedApiCalls,
-            'settings' => $this->settingsService->getSettings()
+            'settings' => $this->settingsService->getSettings(),
+            'inverterSettings' => $inverterSettings
         ]);
+    }
+
+    /**
+     * Get current inverter settings via AJAX
+     */
+    public function getInverterSettings(): JsonResponse
+    {
+        try {
+            $plantInfo = $this->sunSyncService->getPlantInfo();
+            if (!$plantInfo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to get plant information'
+                ], 400);
+            }
+
+            $inverterInfo = $this->sunSyncService->getInverterInfo($plantInfo['id']);
+            if (!$inverterInfo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to get inverter information'
+                ], 400);
+            }
+
+            $inverterSn = $inverterInfo['sn'];
+            $inverterSettings = $this->sunSyncService->getInverterSettings($inverterSn);
+            
+            if (!$inverterSettings) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to get inverter settings'
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'settings' => $inverterSettings,
+                'inverterSn' => $inverterSn
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get inverter settings', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching inverter settings: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Immediately sync current settings to inverter with verification and retry logic
+     */
+    public function syncToInverterNow()
+    {
+        // Check if streaming is requested
+        if (request()->input('stream') === 'true') {
+            // Verify CSRF token for GET requests
+            if (request()->isMethod('get')) {
+                $token = request()->input('_token');
+                if (!$token || $token !== csrf_token()) {
+                    abort(403, 'CSRF token mismatch');
+                }
+            }
+            
+            return response()->stream(function () {
+                $this->streamSyncProgress();
+            }, 200, [
+                'Content-Type' => 'text/event-stream',
+                'Cache-Control' => 'no-cache',
+                'X-Accel-Buffering' => 'no',
+                'Connection' => 'keep-alive',
+            ]);
+        }
+        
+        // Original non-streaming response
+        return $this->syncToInverterNowLegacy();
+    }
+    
+    /**
+     * Stream sync progress in real-time using Server-Sent Events
+     */
+    private function streamSyncProgress(): void
+    {
+        $maxRetries = 3;
+        $stepId = 0;
+        
+        try {
+            // Helper function to send SSE message
+            $sendEvent = function($event, $data) {
+                echo "event: {$event}\n";
+                echo "data: " . json_encode($data) . "\n\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            };
+            
+            // Step 1: Get current settings from CSV
+            $stepId++;
+            $sendEvent('step', ['id' => $stepId, 'step' => 1, 'message' => 'Reading local settings...', 'status' => 'in_progress']);
+            usleep(100000); // 0.1 second delay for visibility
+            $settings = $this->settingsService->getSettings();
+            $sendEvent('step', ['id' => $stepId, 'step' => 1, 'message' => 'Reading local settings...', 'status' => 'success']);
+            
+            // Step 2: Get plant info
+            $stepId++;
+            $sendEvent('step', ['id' => $stepId, 'step' => 2, 'message' => 'Connecting to SunSync API...', 'status' => 'in_progress']);
+            usleep(100000); // 0.1 second delay
+            $plantInfo = $this->sunSyncService->getPlantInfo();
+            if (!$plantInfo) {
+                $sendEvent('step', ['id' => $stepId, 'step' => 2, 'message' => 'Failed to get plant information', 'status' => 'error']);
+                $sendEvent('complete', ['success' => false, 'message' => 'Failed to get plant information']);
+                return;
+            }
+            $sendEvent('step', [
+                'id' => $stepId,
+                'step' => 2, 
+                'message' => 'Connecting to SunSync API...', 
+                'status' => 'success',
+                'request' => ['endpoint' => 'GET /api/v1/plants'],
+                'response' => $this->dataMaskingService->maskSensitiveData(['plantInfo' => $plantInfo])
+            ]);
+
+            // Step 3: Get inverter info
+            $stepId++;
+            $sendEvent('step', ['id' => $stepId, 'step' => 3, 'message' => 'Getting inverter information...', 'status' => 'in_progress']);
+            usleep(100000); // 0.1 second delay
+            $inverterInfo = $this->sunSyncService->getInverterInfo($plantInfo['id']);
+            if (!$inverterInfo) {
+                $sendEvent('step', ['id' => $stepId, 'step' => 3, 'message' => 'Failed to get inverter information', 'status' => 'error']);
+                $sendEvent('complete', ['success' => false, 'message' => 'Failed to get inverter information']);
+                return;
+            }
+            $inverterSn = $inverterInfo['sn'];
+            $sendEvent('step', [
+                'id' => $stepId,
+                'step' => 3, 
+                'message' => "Getting inverter information... (SN: {$inverterSn})", 
+                'status' => 'success',
+                'request' => ['endpoint' => "GET /api/v1/plant/{$plantInfo['id']}/inverters"],
+                'response' => $this->dataMaskingService->maskSensitiveData(['inverterInfo' => $inverterInfo])
+            ]);
+            
+            // Prepare settings to send to inverter
+            $updateSettings = [
+                'sn' => $inverterSn,
+                "sellTime1" => $settings['sell_time_1'] ?? "00:00",
+                "sellTime2" => $settings['sell_time_2'] ?? "02:00",
+                "sellTime3" => $settings['sell_time_3'] ?? "04:00",
+                "sellTime4" => $settings['sell_time_4'] ?? "05:30",
+                "sellTime5" => $settings['default_sell_time'] ?? "22:00",
+                "sellTime6" => $settings['sell_time_6'] ?? "23:30",
+                "sellTime1Pac" => "5000",
+                "sellTime2Pac" => "5000",
+                "sellTime3Pac" => "5000",
+                "sellTime4Pac" => "5000",
+                "sellTime5Pac" => "5000",
+                "sellTime6Pac" => "5000",
+                "cap1" => $settings['cap_1'] ?? "100",
+                "cap2" => $settings['cap_2'] ?? "100",
+                "cap3" => $settings['cap_3'] ?? "100",
+                "cap4" => $settings['cap_4'] ?? "25",
+                "cap5" => $settings['default_cap'] ?? "20",
+                "cap6" => $settings['cap_6'] ?? "100",
+                "sellTime1Volt" => "49",
+                "sellTime2Volt" => "49",
+                "sellTime3Volt" => "49",
+                "sellTime4Volt" => "49",
+                "sellTime5Volt" => "49",
+                "sellTime6Volt" => "49",
+                "mondayOn" => true,
+                "tuesdayOn" => true,
+                "wednesdayOn" => true,
+                "thursdayOn" => true,
+                "fridayOn" => true,
+                "saturdayOn" => true,
+                "sundayOn" => true,
+                "time1on" => ($settings['time_1_on'] ?? 'true') === 'true' ? true : "false",
+                "time2on" => ($settings['time_2_on'] ?? 'true') === 'true' ? true : "false",
+                "time3on" => ($settings['time_3_on'] ?? 'true') === 'true' ? true : "false",
+                "time4on" => ($settings['time_4_on'] ?? 'false') === 'true' ? true : "false",
+                "time5on" => "false",
+                "time6on" => ($settings['time_6_on'] ?? 'true') === 'true' ? true : "false",
+                "genTime1on" => "false",
+                "genTime2on" => "false",
+                "genTime3on" => "false",
+                "genTime4on" => "false",
+                "genTime5on" => "false",
+                "genTime6on" => "false"
+            ];
+            
+            // Retry loop
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                // Step 4: Send settings to inverter
+                $stepId++;
+                $step4Id = $stepId;
+                $sendEvent('step', [
+                    'id' => $step4Id,
+                    'step' => 4, 
+                    'message' => "Sending settings to inverter (Attempt {$attempt}/{$maxRetries})...", 
+                    'status' => 'in_progress'
+                ]);
+                
+                usleep(100000); // 0.1 second delay
+                $success = $this->sunSyncService->updateSystemModeSettings($inverterSn, $updateSettings, true);
+                
+                if (!$success) {
+                    $sendEvent('step', [
+                        'id' => $step4Id,
+                        'step' => 4, 
+                        'message' => "Sending settings to inverter (Attempt {$attempt}/{$maxRetries})...", 
+                        'status' => 'error',
+                        'request' => [
+                            'endpoint' => "POST /api/v1/common/setting/{$inverterSn}/set",
+                            'body' => $this->dataMaskingService->maskSensitiveData($updateSettings)
+                        ],
+                        'response' => ['success' => false, 'error' => 'Update failed']
+                    ]);
+                    
+                    if ($attempt < $maxRetries) {
+                        $stepId++;
+                        $sendEvent('step', [
+                            'id' => $stepId,
+                            'step' => 4, 
+                            'message' => "Failed to send settings, retrying...", 
+                            'status' => 'warning'
+                        ]);
+                        sleep(2);
+                        continue;
+                    } else {
+                        $sendEvent('complete', [
+                            'success' => false,
+                            'message' => 'Failed to sync settings to inverter after ' . $maxRetries . ' attempts'
+                        ]);
+                        return;
+                    }
+                }
+                
+                $sendEvent('step', [
+                    'id' => $step4Id,
+                    'step' => 4, 
+                    'message' => "Sending settings to inverter (Attempt {$attempt}/{$maxRetries})...", 
+                    'status' => 'success',
+                    'request' => [
+                        'endpoint' => "POST /api/v1/common/setting/{$inverterSn}/set",
+                        'body' => $this->dataMaskingService->maskSensitiveData($updateSettings)
+                    ],
+                    'response' => ['success' => true]
+                ]);
+                
+                // Step 5: Wait for inverter to process
+                $stepId++;
+                $step5Id = $stepId;
+                $sendEvent('step', [
+                    'id' => $step5Id,
+                    'step' => 5, 
+                    'message' => 'Waiting for inverter to process changes (3 seconds)...', 
+                    'status' => 'in_progress'
+                ]);
+                sleep(3);
+                $sendEvent('step', [
+                    'id' => $step5Id,
+                    'step' => 5, 
+                    'message' => 'Waiting for inverter to process changes (3 seconds)...', 
+                    'status' => 'success'
+                ]);
+                
+                // Step 6: Verify settings
+                $stepId++;
+                $step6Id = $stepId;
+                $sendEvent('step', [
+                    'id' => $step6Id,
+                    'step' => 6, 
+                    'message' => "Verifying settings (Attempt {$attempt}/{$maxRetries})...", 
+                    'status' => 'in_progress'
+                ]);
+                
+                usleep(100000); // 0.1 second delay
+                $currentSettings = $this->sunSyncService->getInverterSettings($inverterSn);
+                
+                if (!$currentSettings) {
+                    $sendEvent('step', [
+                        'id' => $step6Id,
+                        'step' => 6, 
+                        'message' => "Verifying settings (Attempt {$attempt}/{$maxRetries})...", 
+                        'status' => 'error',
+                        'request' => ['endpoint' => "GET /api/v1/common/setting/{$inverterSn}/read"],
+                        'response' => ['error' => 'No data returned']
+                    ]);
+                    
+                    if ($attempt < $maxRetries) {
+                        $stepId++;
+                        $sendEvent('step', [
+                            'id' => $stepId,
+                            'step' => 6, 
+                            'message' => "Could not verify settings, retrying sync...", 
+                            'status' => 'warning'
+                        ]);
+                        sleep(2);
+                        continue;
+                    } else {
+                        $sendEvent('complete', [
+                            'success' => false,
+                            'message' => 'Settings may have been saved but verification failed'
+                        ]);
+                        return;
+                    }
+                }
+                
+                // Verify key settings
+                $verificationErrors = [];
+                $fieldsToVerify = [
+                    'sellTime1', 'sellTime2', 'sellTime3', 'sellTime4', 'sellTime5', 'sellTime6',
+                    'cap1', 'cap2', 'cap3', 'cap4', 'cap5', 'cap6'
+                ];
+                
+                foreach ($fieldsToVerify as $field) {
+                    if (isset($updateSettings[$field]) && isset($currentSettings[$field])) {
+                        if ($updateSettings[$field] != $currentSettings[$field]) {
+                            $verificationErrors[] = "{$field}: expected {$updateSettings[$field]}, got {$currentSettings[$field]}";
+                        }
+                    }
+                }
+                
+                if (!empty($verificationErrors)) {
+                    $sendEvent('step', [
+                        'id' => $step6Id,
+                        'step' => 6, 
+                        'message' => "Verifying settings (Attempt {$attempt}/{$maxRetries})... - Mismatches found: " . count($verificationErrors), 
+                        'status' => 'warning',
+                        'request' => ['endpoint' => "GET /api/v1/common/setting/{$inverterSn}/read"],
+                        'response' => $this->dataMaskingService->maskSensitiveData(['currentSettings' => $currentSettings]),
+                        'verificationErrors' => $verificationErrors,
+                        'comparison' => [
+                            'expected' => array_intersect_key($updateSettings, array_flip($fieldsToVerify)),
+                            'actual' => array_intersect_key($currentSettings, array_flip($fieldsToVerify))
+                        ]
+                    ]);
+                    
+                    if ($attempt < $maxRetries) {
+                        $stepId++;
+                        $sendEvent('step', [
+                            'id' => $stepId,
+                            'step' => 6, 
+                            'message' => "Settings verification failed, retrying sync...", 
+                            'status' => 'warning',
+                            'details' => implode(', ', array_slice($verificationErrors, 0, 3))
+                        ]);
+                        sleep(2);
+                        continue;
+                    } else {
+                        $sendEvent('complete', [
+                            'success' => true,
+                            'partial' => true,
+                            'message' => 'Settings saved but some values may not have updated correctly',
+                            'verificationErrors' => $verificationErrors
+                        ]);
+                        return;
+                    }
+                }
+                
+                // Success!
+                $sendEvent('step', [
+                    'id' => $step6Id,
+                    'step' => 6, 
+                    'message' => "Verification successful - All settings match!", 
+                    'status' => 'success',
+                    'request' => ['endpoint' => "GET /api/v1/common/setting/{$inverterSn}/read"],
+                    'response' => $this->dataMaskingService->maskSensitiveData(['currentSettings' => $currentSettings]),
+                    'comparison' => [
+                        'expected' => array_intersect_key($updateSettings, array_flip($fieldsToVerify)),
+                        'actual' => array_intersect_key($currentSettings, array_flip($fieldsToVerify))
+                    ]
+                ]);
+                
+                $stepId++;
+                $sendEvent('step', [
+                    'id' => $stepId,
+                    'step' => 7, 
+                    'message' => "✓ Sync completed successfully on attempt {$attempt}", 
+                    'status' => 'success'
+                ]);
+                
+                $sendEvent('complete', [
+                    'success' => true,
+                    'message' => "Settings synced and verified successfully (Attempt {$attempt}/{$maxRetries})",
+                    'attempt' => $attempt
+                ]);
+                
+                Log::info('Manual sync to inverter successful', [
+                    'inverter_sn' => $inverterSn,
+                    'attempt' => $attempt,
+                    'settings' => $updateSettings
+                ]);
+                
+                return;
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to sync settings to inverter', [
+                'error' => $e->getMessage()
+            ]);
+            
+            $stepId++;
+            $sendEvent('step', [
+                'id' => $stepId,
+                'step' => 'error',
+                'message' => 'Exception: ' . $e->getMessage(),
+                'status' => 'error'
+            ]);
+            
+            $sendEvent('complete', [
+                'success' => false,
+                'message' => 'An error occurred while syncing to inverter: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Legacy non-streaming sync (original implementation)
+     */
+    private function syncToInverterNowLegacy(): JsonResponse
+    {
+        $steps = [];
+        $maxRetries = 3;
+        
+        try {
+            // Step 1: Get current settings from CSV
+            $steps[] = ['step' => 1, 'message' => 'Reading local settings...', 'status' => 'in_progress'];
+            $settings = $this->settingsService->getSettings();
+            $steps[count($steps) - 1]['status'] = 'success';
+            
+            // Step 2: Get plant info
+            $steps[] = ['step' => 2, 'message' => 'Connecting to SunSync API...', 'status' => 'in_progress'];
+            $plantInfo = $this->sunSyncService->getPlantInfo();
+            if (!$plantInfo) {
+                $steps[count($steps) - 1]['status'] = 'error';
+                $steps[count($steps) - 1]['response'] = ['error' => 'No data returned'];
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to get plant information',
+                    'steps' => $steps
+                ], 400);
+            }
+            $steps[count($steps) - 1]['status'] = 'success';
+            $steps[count($steps) - 1]['request'] = ['endpoint' => 'GET /api/v1/plants'];
+            $steps[count($steps) - 1]['response'] = $this->dataMaskingService->maskSensitiveData(['plantInfo' => $plantInfo]);
+
+            // Step 3: Get inverter info
+            $steps[] = ['step' => 3, 'message' => 'Getting inverter information...', 'status' => 'in_progress'];
+            $inverterInfo = $this->sunSyncService->getInverterInfo($plantInfo['id']);
+            if (!$inverterInfo) {
+                $steps[count($steps) - 1]['status'] = 'error';
+                $steps[count($steps) - 1]['response'] = ['error' => 'No data returned'];
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to get inverter information',
+                    'steps' => $steps
+                ], 400);
+            }
+            $inverterSn = $inverterInfo['sn'];
+            $steps[count($steps) - 1]['status'] = 'success';
+            $steps[count($steps) - 1]['message'] .= " (SN: {$inverterSn})";
+            $steps[count($steps) - 1]['request'] = ['endpoint' => "GET /api/v1/plant/{$plantInfo['id']}/inverters"];
+            $steps[count($steps) - 1]['response'] = $this->dataMaskingService->maskSensitiveData(['inverterInfo' => $inverterInfo]);
+            
+            // Prepare settings to send to inverter
+            $updateSettings = [
+                'sn' => $inverterSn,
+
+                "sellTime1" => $settings['sell_time_1'] ?? "00:00",
+                "sellTime2" => $settings['sell_time_2'] ?? "02:00",
+                "sellTime3" => $settings['sell_time_3'] ?? "04:00",
+                "sellTime4" => $settings['sell_time_4'] ?? "05:30",
+                "sellTime5" => $settings['default_sell_time'] ?? "22:00",
+                "sellTime6" => $settings['sell_time_6'] ?? "23:30",
+
+                "sellTime1Pac" => "5000",
+                "sellTime2Pac" => "5000",
+                "sellTime3Pac" => "5000",
+                "sellTime4Pac" => "5000",
+                "sellTime5Pac" => "5000",
+                "sellTime6Pac" => "5000",
+
+                "cap1" => $settings['cap_1'] ?? "100",
+                "cap2" => $settings['cap_2'] ?? "100",
+                "cap3" => $settings['cap_3'] ?? "100",
+                "cap4" => $settings['cap_4'] ?? "25",
+                "cap5" => $settings['default_cap'] ?? "20",
+                "cap6" => $settings['cap_6'] ?? "100",
+
+                "sellTime1Volt" => "49",
+                "sellTime2Volt" => "49",
+                "sellTime3Volt" => "49",
+                "sellTime4Volt" => "49",
+                "sellTime5Volt" => "49",
+                "sellTime6Volt" => "49",
+
+                "mondayOn" => true,
+                "tuesdayOn" => true,
+                "wednesdayOn" => true,
+                "thursdayOn" => true,
+                "fridayOn" => true,
+                "saturdayOn" => true,
+                "sundayOn" => true,
+
+                "time1on" => ($settings['time_1_on'] ?? 'true') === 'true' ? true : "false",
+                "time2on" => ($settings['time_2_on'] ?? 'true') === 'true' ? true : "false",
+                "time3on" => ($settings['time_3_on'] ?? 'true') === 'true' ? true : "false",
+                "time4on" => ($settings['time_4_on'] ?? 'false') === 'true' ? true : "false",
+                "time5on" => "false",  // Default to false for slot 5
+                "time6on" => ($settings['time_6_on'] ?? 'true') === 'true' ? true : "false",
+
+                "genTime1on" => "false",
+                "genTime2on" => "false",
+                "genTime3on" => "false",
+                "genTime4on" => "false",
+                "genTime5on" => "false",
+                "genTime6on" => "false"
+            ];
+            
+            // Retry loop
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                // Step 4: Send settings to inverter
+                $stepIndex = count($steps);
+                $steps[] = [
+                    'step' => 4, 
+                    'message' => "Sending settings to inverter (Attempt {$attempt}/{$maxRetries})...", 
+                    'status' => 'in_progress'
+                ];
+                
+                $success = $this->sunSyncService->updateSystemModeSettings($inverterSn, $updateSettings, true); // Force update
+                
+                // Add request details
+                $steps[$stepIndex]['request'] = [
+                    'endpoint' => "POST /api/v1/common/setting/{$inverterSn}/set",
+                    'body' => $this->dataMaskingService->maskSensitiveData($updateSettings)
+                ];
+                
+                if (!$success) {
+                    $steps[$stepIndex]['status'] = 'error';
+                    $steps[$stepIndex]['response'] = ['success' => false, 'error' => 'Update failed'];
+                    
+                    if ($attempt < $maxRetries) {
+                        $steps[] = [
+                            'step' => 4, 
+                            'message' => "Failed to send settings, retrying...", 
+                            'status' => 'warning'
+                        ];
+                        sleep(1); // Wait 2 seconds before retry
+                        continue;
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Failed to sync settings to inverter after ' . $maxRetries . ' attempts',
+                            'steps' => $steps
+                        ], 400);
+                    }
+                }
+                
+                $steps[$stepIndex]['status'] = 'success';
+                $steps[$stepIndex]['response'] = ['success' => true];
+                
+                // Step 5: Wait for inverter to process
+                $steps[] = [
+                    'step' => 5, 
+                    'message' => 'Waiting for inverter to process changes (10 seconds)...', 
+                    'status' => 'in_progress'
+                ];
+                sleep(10);
+                $steps[count($steps) - 1]['status'] = 'success';
+                
+                // Step 6: Verify settings
+                $stepIndex = count($steps);
+                $steps[] = [
+                    'step' => 6, 
+                    'message' => "Verifying settings (Attempt {$attempt}/{$maxRetries})...", 
+                    'status' => 'in_progress'
+                ];
+                
+                $currentSettings = $this->sunSyncService->getInverterSettings($inverterSn);
+                
+                // Add request details
+                $steps[$stepIndex]['request'] = [
+                    'endpoint' => "GET /api/v1/common/setting/{$inverterSn}/read"
+                ];
+                
+                if (!$currentSettings) {
+                    $steps[$stepIndex]['status'] = 'error';
+                    $steps[$stepIndex]['response'] = ['error' => 'No data returned'];
+                    
+                    if ($attempt < $maxRetries) {
+                        $steps[] = [
+                            'step' => 6, 
+                            'message' => "Could not verify settings, retrying sync...", 
+                            'status' => 'warning'
+                        ];
+                        sleep(5);
+                        continue;
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Settings may have been saved but verification failed',
+                            'steps' => $steps
+                        ], 400);
+                    }
+                }
+                
+                $steps[$stepIndex]['response'] = $this->dataMaskingService->maskSensitiveData(['currentSettings' => $currentSettings]);
+                
+                // Verify key settings
+                $verificationErrors = [];
+                $fieldsToVerify = [
+                    'sellTime1', 'sellTime2', 'sellTime3', 'sellTime4', 'sellTime5', 'sellTime6',
+                    'cap1', 'cap2', 'cap3', 'cap4', 'cap5', 'cap6'
+                ];
+                
+                foreach ($fieldsToVerify as $field) {
+                    if (isset($updateSettings[$field]) && isset($currentSettings[$field])) {
+                        if ($updateSettings[$field] != $currentSettings[$field]) {
+                            $verificationErrors[] = "{$field}: expected {$updateSettings[$field]}, got {$currentSettings[$field]}";
+                        }
+                    }
+                }
+                
+                if (!empty($verificationErrors)) {
+                    $steps[$stepIndex]['status'] = 'warning';
+                    $steps[$stepIndex]['message'] .= " - Mismatches found: " . count($verificationErrors);
+                    $steps[$stepIndex]['verificationErrors'] = $verificationErrors;
+                    $steps[$stepIndex]['comparison'] = [
+                        'expected' => array_intersect_key($updateSettings, array_flip($fieldsToVerify)),
+                        'actual' => array_intersect_key($currentSettings, array_flip($fieldsToVerify))
+                    ];
+                    
+                    if ($attempt < $maxRetries) {
+                        $steps[] = [
+                            'step' => 6, 
+                            'message' => "Settings verification failed, retrying sync...", 
+                            'status' => 'warning',
+                            'details' => implode(', ', array_slice($verificationErrors, 0, 3)),
+                            'verificationErrors' => $verificationErrors
+                        ];
+                        sleep(5);
+                        continue;
+                    } else {
+                        $steps[] = [
+                            'step' => 6, 
+                            'message' => "Settings partially saved but some mismatches remain", 
+                            'status' => 'warning',
+                            'details' => implode(', ', array_slice($verificationErrors, 0, 5)),
+                            'verificationErrors' => $verificationErrors
+                        ];
+                        
+                        Log::warning('Sync verification found mismatches after all retries', [
+                            'inverter_sn' => $inverterSn,
+                            'errors' => $verificationErrors
+                        ]);
+                        
+                        return response()->json([
+                            'success' => true,
+                            'partial' => true,
+                            'message' => 'Settings saved but some values may not have updated correctly',
+                            'steps' => $steps,
+                            'verificationErrors' => $verificationErrors
+                        ]);
+                    }
+                }
+                
+                // Add verification comparison even on success
+                $steps[$stepIndex]['comparison'] = [
+                    'expected' => array_intersect_key($updateSettings, array_flip($fieldsToVerify)),
+                    'actual' => array_intersect_key($currentSettings, array_flip($fieldsToVerify))
+                ];
+                
+                // Success!
+                $steps[$stepIndex]['status'] = 'success';
+                $steps[$stepIndex]['message'] = "Verification successful - All settings match!";
+                
+                $steps[] = [
+                    'step' => 7, 
+                    'message' => "✓ Sync completed successfully on attempt {$attempt}", 
+                    'status' => 'success'
+                ];
+                
+                Log::info('Manual sync to inverter successful', [
+                    'inverter_sn' => $inverterSn,
+                    'attempt' => $attempt,
+                    'settings' => $updateSettings
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => "Settings synced and verified successfully (Attempt {$attempt}/{$maxRetries})",
+                    'steps' => $steps,
+                    'attempt' => $attempt
+                ]);
+            }
+            
+            // This shouldn't be reached, but just in case
+            return response()->json([
+                'success' => false,
+                'message' => 'Unexpected error in sync process',
+                'steps' => $steps
+            ], 500);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to sync settings to inverter', [
+                'error' => $e->getMessage()
+            ]);
+            
+            $steps[] = [
+                'step' => 'error',
+                'message' => 'Exception: ' . $e->getMessage(),
+                'status' => 'error'
+            ];
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while syncing to inverter: ' . $e->getMessage(),
+                'steps' => $steps
+            ], 500);
+        }
     }
 } 
