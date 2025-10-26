@@ -8,6 +8,7 @@ use App\Services\MyEnergiApiService;
 use App\Services\SunSyncService;
 use App\Services\EvChargingSettingsService;
 use App\Services\DataMaskingService;
+use App\Services\BatteryDischargeService;
 use App\Models\SunSyncSetting;
 use App\Http\Requests\UpdateEvSettingsRequest;
 use App\Enums\ZappiStatus;
@@ -25,17 +26,20 @@ class EvChargingController extends Controller
     private SunSyncService $sunSyncService;
     private EvChargingSettingsService $settingsService;
     private DataMaskingService $dataMaskingService;
+    private BatteryDischargeService $batteryDischargeService;
 
     public function __construct(
         MyEnergiApiService $myEnergiApiService,
         SunSyncService $sunSyncService,
         EvChargingSettingsService $settingsService,
-        DataMaskingService $dataMaskingService
+        DataMaskingService $dataMaskingService,
+        BatteryDischargeService $batteryDischargeService
     ) {
         $this->myEnergiApiService = $myEnergiApiService;
         $this->sunSyncService = $sunSyncService;
         $this->settingsService = $settingsService;
         $this->dataMaskingService = $dataMaskingService;
+        $this->batteryDischargeService = $batteryDischargeService;
     }
 
     public function updateSystemMode(): View|JsonResponse|Response
@@ -203,6 +207,103 @@ class EvChargingController extends Controller
             return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to get SunSync inverter settings. Please check your SunSync credentials in Settings.');
         }
 
+        // ========================================================================
+        // BATTERY DISCHARGE TO GRID LOGIC (PRIORITY OVER EV CHARGING)
+        // ========================================================================
+        
+        if ($this->batteryDischargeService->isDischargeEnabled()) {
+            $logs[] = "Battery discharge feature is enabled - checking discharge rules";
+            
+            // Get current battery SOC
+            $currentSoc = $this->batteryDischargeService->getCurrentBatterySoc();
+            $apiCalls[] = [
+                'name' => 'SunSync API - Get Battery SOC',
+                'endpoint' => "GET /api/v1/inverter/{$inverterSn}/flow",
+                'request' => ['inverterSn' => $inverterSn],
+                'response' => ['soc' => $currentSoc]
+            ];
+            
+            if ($currentSoc === null) {
+                $logs[] = "Warning: Unable to get current battery SOC - skipping discharge logic";
+            } else {
+                $logs[] = "Current battery SOC: {$currentSoc}%";
+                
+                // Check if we should enable discharge
+                $dischargeDecision = $this->batteryDischargeService->shouldEnableDischarge(
+                    $zappiStatus,
+                    $currentSoc,
+                    $currentTime
+                );
+                
+                $logs[] = "Discharge decision: " . ($dischargeDecision['shouldDischarge'] ? 'ENABLE' : 'DISABLE');
+                $logs[] = "Reason: " . $dischargeDecision['reason'];
+                
+                if ($dischargeDecision['startTime']) {
+                    $logs[] = "Calculated discharge window: {$dischargeDecision['startTime']->format('H:i')} - {$dischargeDecision['stopTime']->format('H:i')}";
+                }
+                
+                if ($dischargeDecision['shouldDischarge']) {
+                    // Enable discharge mode
+                    $dischargeToSoc = (int) ($settings['discharge_to_soc'] ?? 20);
+                    $logs[] = "Enabling discharge mode (discharge to {$dischargeToSoc}% SOC)";
+                    
+                    $success = $this->sunSyncService->enableDischargeMode($inverterSn, $dischargeToSoc);
+                    $apiCalls[] = [
+                        'name' => 'SunSync API - Enable Discharge Mode',
+                        'endpoint' => "POST /api/v1/common/setting/{$inverterSn}/set",
+                        'request' => [
+                            'sysWorkMode' => '0',
+                            'discharge_to_soc' => $dischargeToSoc
+                        ],
+                        'response' => ['success' => $success]
+                    ];
+                    
+                    if ($success) {
+                        $logs[] = "Discharge mode enabled successfully";
+                        return $this->handleResponse($isCronMode, $logs, $apiCalls, true);
+                    } else {
+                        $logs[] = "Error: Failed to enable discharge mode";
+                        return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to enable discharge mode');
+                    }
+                } else {
+                    // Check if we need to return to normal mode
+                    $currentWorkMode = $currentSettings['sysWorkMode'] ?? '2';
+                    
+                    if ($currentWorkMode === '0') {
+                        // Currently in discharge mode, need to return to normal
+                        $logs[] = "Currently in discharge mode - returning to normal mode";
+                        
+                        $success = $this->sunSyncService->disableDischargeMode($inverterSn, $settings);
+                        $apiCalls[] = [
+                            'name' => 'SunSync API - Disable Discharge Mode (Return to Normal)',
+                            'endpoint' => "POST /api/v1/common/setting/{$inverterSn}/set",
+                            'request' => [
+                                'sysWorkMode' => '2'
+                            ],
+                            'response' => ['success' => $success]
+                        ];
+                        
+                        if ($success) {
+                            $logs[] = "Returned to normal mode successfully";
+                            return $this->handleResponse($isCronMode, $logs, $apiCalls, true);
+                        } else {
+                            $logs[] = "Error: Failed to return to normal mode";
+                            return $this->handleResponse($isCronMode, $logs, $apiCalls, false, 'Failed to return to normal mode');
+                        }
+                    } else {
+                        $logs[] = "Not in discharge mode and conditions not met - no action needed";
+                        // Continue to EV charging logic below
+                    }
+                }
+            }
+        } else {
+            $logs[] = "Battery discharge feature is disabled - proceeding with EV charging logic";
+        }
+        
+        // ========================================================================
+        // EV CHARGING LOGIC (ONLY IF NOT IN DISCHARGE MODE)
+        // ========================================================================
+        
         // Prepare new settings
         $newSettings = $currentSettings;
         
@@ -412,6 +513,14 @@ class EvChargingController extends Controller
             }
         }
         
+        // Handle discharge_enabled checkbox (checkboxes only send value when checked)
+        if (isset($validated['discharge_enabled']) && $validated['discharge_enabled'] === 'true') {
+            $validated['discharge_enabled'] = 'true';
+        } elseif ($request->has('battery_size_wh') || $request->has('discharge_rate_w') || $request->has('discharge_check_time')) {
+            // If any discharge field is present but checkbox isn't checked, set to false
+            $validated['discharge_enabled'] = 'false';
+        }
+        
         // Merge with validated input
         $settings = array_merge($currentSettings, array_filter($validated, fn($value) => $value !== null));
 
@@ -517,6 +626,7 @@ class EvChargingController extends Controller
 
         // Get current inverter settings to display
         $inverterSettings = null;
+        $inverterInfo = null;
         try {
             $plantInfo = $this->sunSyncService->getPlantInfo();
             if ($plantInfo) {
@@ -538,7 +648,8 @@ class EvChargingController extends Controller
             'logs' => $logs,
             'apiCalls' => $maskedApiCalls,
             'settings' => $this->settingsService->getSettings(),
-            'inverterSettings' => $inverterSettings
+            'inverterSettings' => $inverterSettings,
+            'inverterInfo' => $inverterInfo
         ]);
     }
 

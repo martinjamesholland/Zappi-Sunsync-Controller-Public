@@ -43,7 +43,17 @@ class EvChargingSettingsService
             
             // Night time range
             'night_start' => config('sunsync.defaults.night_start', '23:30'),
-            'night_end' => config('sunsync.defaults.night_end', '05:30')
+            'night_end' => config('sunsync.defaults.night_end', '05:30'),
+            
+            // Battery Discharge to Grid Settings
+            'battery_size_wh' => config('sunsync.defaults.battery_size_wh', '10000'),
+            'discharge_rate_w' => config('sunsync.defaults.discharge_rate_w', '2750'),
+            'house_load_w' => config('sunsync.defaults.house_load_w', '350'),
+            'discharge_to_soc' => config('sunsync.defaults.discharge_to_soc', '20'),
+            'discharge_check_time' => config('sunsync.defaults.discharge_check_time', '20:00'),
+            'discharge_min_soc' => config('sunsync.defaults.discharge_min_soc', '50'),
+            'discharge_stop_time' => config('sunsync.defaults.discharge_stop_time', '23:45'),
+            'discharge_enabled' => config('sunsync.defaults.discharge_enabled', 'false'),
         ];
     }
 

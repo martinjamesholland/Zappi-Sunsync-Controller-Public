@@ -52,6 +52,16 @@ class UpdateEvSettingsRequest extends FormRequest
             // Night time range
             'night_start' => ['nullable', 'date_format:H:i'],
             'night_end' => ['nullable', 'date_format:H:i'],
+            
+            // Battery Discharge to Grid Settings
+            'discharge_enabled' => ['nullable', 'in:true'],
+            'battery_size_wh' => ['nullable', 'numeric', 'min:1000', 'max:100000'],
+            'discharge_rate_w' => ['nullable', 'numeric', 'min:100', 'max:10000'],
+            'house_load_w' => ['nullable', 'numeric', 'min:0', 'max:5000'],
+            'discharge_to_soc' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'discharge_min_soc' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'discharge_check_time' => ['nullable', 'date_format:H:i'],
+            'discharge_stop_time' => ['nullable', 'date_format:H:i'],
         ];
     }
 

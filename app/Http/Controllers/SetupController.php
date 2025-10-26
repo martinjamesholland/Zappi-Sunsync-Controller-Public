@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
@@ -185,6 +186,42 @@ class SetupController extends Controller
 
         // Run migrations with the new database connection
         try {
+            // Update the default connection to the new one we just configured
+            config(['database.default' => $connection]);
+            
+            $driver = DB::connection()->getDriverName();
+            
+            // Always drop all existing tables to start fresh
+            if ($driver === 'mysql' || $driver === 'mariadb') {
+                try {
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0');
+                    $tables = DB::select('SHOW TABLES');
+                    foreach ($tables as $table) {
+                        $tableArray = get_object_vars($table);
+                        $tableName = reset($tableArray);
+                        DB::statement("DROP TABLE IF EXISTS `{$tableName}`");
+                    }
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                } catch (\Exception $e) {
+                    Log::error('Failed to drop existing tables', ['error' => $e->getMessage()]);
+                }
+            } elseif ($driver === 'pgsql') {
+                try {
+                    DB::statement('DROP SCHEMA public CASCADE');
+                    DB::statement('CREATE SCHEMA public');
+                } catch (\Exception $e) {
+                    Log::error('Failed to drop schema', ['error' => $e->getMessage()]);
+                }
+            } elseif ($driver === 'sqlite') {
+                // For SQLite, delete the database file and recreate
+                $dbPath = config('database.connections.sqlite.database');
+                if ($dbPath && file_exists($dbPath)) {
+                    unlink($dbPath);
+                    touch($dbPath);
+                }
+            }
+            
+            // Now run fresh migrations
             Artisan::call('migrate', ['--force' => true]);
             
             return response()->json([
@@ -192,7 +229,7 @@ class SetupController extends Controller
                 'message' => 'Database configured and migrations run successfully!'
             ]);
         } catch (\Exception $e) {
-            Log::error('Migration failed', ['error' => $e->getMessage()]);
+            Log::error('Migration failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             
             return response()->json([
                 'success' => false,

@@ -744,4 +744,169 @@ class SunSyncService
             'existThinkPower' => false
         ];
     }
+
+    /**
+     * Enable battery discharge to grid mode
+     * 
+     * Sets sysWorkMode to 0 (discharge mode) and configures all time slots
+     * to discharge to the specified SOC level
+     * 
+     * @param string $inverterSn Inverter serial number
+     * @param int $dischargeToSoc Target SOC to discharge to (e.g., 20 for 20%)
+     * @return bool Success status
+     */
+    public function enableDischargeMode(string $inverterSn, int $dischargeToSoc): bool
+    {
+        if (!$this->ensureAuthenticated()) {
+            Log::error('SunSync enable discharge mode failed: Authentication failed');
+            return false;
+        }
+
+        try {
+            // Get current settings to merge with
+            $currentSettings = $this->getInverterSettings($inverterSn);
+            if (!$currentSettings) {
+                Log::error('SunSync enable discharge mode failed: Could not get current settings');
+                return false;
+            }
+
+            // Prepare discharge mode settings
+            $dischargeSettings = [
+                'sn' => $inverterSn,
+                'sysWorkMode' => '0', // Discharge mode
+                
+                // Set all caps to discharge-to level
+                'cap1' => (string)$dischargeToSoc,
+                'cap2' => (string)$dischargeToSoc,
+                'cap3' => (string)$dischargeToSoc,
+                'cap4' => (string)$dischargeToSoc,
+                'cap5' => (string)$dischargeToSoc,
+                'cap6' => (string)$dischargeToSoc,
+                
+                // Disable all time slots
+                'time1on' => 'false',
+                'time2on' => 'false',
+                'time3on' => 'false',
+                'time4on' => 'false',
+                'time5on' => 'false',
+                'time6on' => 'false',
+            ];
+
+            Log::info('SunSync enabling discharge mode', [
+                'inverter_sn' => $inverterSn,
+                'discharge_to_soc' => $dischargeToSoc,
+                'settings' => $dischargeSettings
+            ]);
+
+            return $this->updateSystemModeSettings($inverterSn, $dischargeSettings, true);
+
+        } catch (\Exception $e) {
+            Log::critical('Unexpected error enabling discharge mode', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Disable discharge mode and return to normal operation
+     * 
+     * Sets sysWorkMode to 2 (normal/limited to home) and restores
+     * default time slot settings from configuration
+     * 
+     * @param string $inverterSn Inverter serial number
+     * @param array $defaultSettings Default settings to restore to
+     * @return bool Success status
+     */
+    public function disableDischargeMode(string $inverterSn, array $defaultSettings): bool
+    {
+        if (!$this->ensureAuthenticated()) {
+            Log::error('SunSync disable discharge mode failed: Authentication failed');
+            return false;
+        }
+
+        try {
+            // Get current settings to merge with
+            $currentSettings = $this->getInverterSettings($inverterSn);
+            if (!$currentSettings) {
+                Log::error('SunSync disable discharge mode failed: Could not get current settings');
+                return false;
+            }
+
+            // Prepare normal mode settings
+            $normalSettings = [
+                'sn' => $inverterSn,
+                'sysWorkMode' => '2', // Normal mode (limited to home)
+                
+                // Restore default sell times
+                'sellTime1' => $defaultSettings['sell_time_1'] ?? '00:00',
+                'sellTime2' => $defaultSettings['sell_time_2'] ?? '03:00',
+                'sellTime3' => $defaultSettings['sell_time_3'] ?? '05:30',
+                'sellTime4' => $defaultSettings['sell_time_4'] ?? '08:00',
+                'sellTime5' => $defaultSettings['default_sell_time'] ?? '22:00',
+                'sellTime6' => $defaultSettings['sell_time_6'] ?? '23:30',
+                
+                // Restore default caps
+                'cap1' => $defaultSettings['cap_1'] ?? '100',
+                'cap2' => $defaultSettings['cap_2'] ?? '100',
+                'cap3' => $defaultSettings['cap_3'] ?? '25',
+                'cap4' => $defaultSettings['cap_4'] ?? '25',
+                'cap5' => $defaultSettings['default_cap'] ?? '20',
+                'cap6' => $defaultSettings['cap_6'] ?? '100',
+                
+                // Restore default time slot states
+                'time1on' => ($defaultSettings['time_1_on'] ?? 'true') === 'true' ? true : 'false',
+                'time2on' => ($defaultSettings['time_2_on'] ?? 'true') === 'true' ? true : 'false',
+                'time3on' => ($defaultSettings['time_3_on'] ?? 'false') === 'true' ? true : 'false',
+                'time4on' => ($defaultSettings['time_4_on'] ?? 'false') === 'true' ? true : 'false',
+                'time5on' => 'false', // Slot 5 is auto-controlled
+                'time6on' => ($defaultSettings['time_6_on'] ?? 'true') === 'true' ? true : 'false',
+                
+                // Keep other settings from current state
+                'sellTime1Pac' => '5000',
+                'sellTime2Pac' => '5000',
+                'sellTime3Pac' => '5000',
+                'sellTime4Pac' => '5000',
+                'sellTime5Pac' => '5000',
+                'sellTime6Pac' => '5000',
+                
+                'sellTime1Volt' => '49',
+                'sellTime2Volt' => '49',
+                'sellTime3Volt' => '49',
+                'sellTime4Volt' => '49',
+                'sellTime5Volt' => '49',
+                'sellTime6Volt' => '49',
+                
+                'mondayOn' => true,
+                'tuesdayOn' => true,
+                'wednesdayOn' => true,
+                'thursdayOn' => true,
+                'fridayOn' => true,
+                'saturdayOn' => true,
+                'sundayOn' => true,
+                
+                'genTime1on' => 'false',
+                'genTime2on' => 'false',
+                'genTime3on' => 'false',
+                'genTime4on' => 'false',
+                'genTime5on' => 'false',
+                'genTime6on' => 'false',
+            ];
+
+            Log::info('SunSync disabling discharge mode (returning to normal)', [
+                'inverter_sn' => $inverterSn,
+                'settings' => $normalSettings
+            ]);
+
+            return $this->updateSystemModeSettings($inverterSn, $normalSettings, true);
+
+        } catch (\Exception $e) {
+            Log::critical('Unexpected error disabling discharge mode', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return false;
+        }
+    }
 } 

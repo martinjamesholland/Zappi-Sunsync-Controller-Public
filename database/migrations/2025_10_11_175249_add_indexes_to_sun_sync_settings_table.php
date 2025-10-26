@@ -13,14 +13,29 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Check if indexes exist using raw SQL
-        $indexExists = collect(Schema::getConnection()
-            ->select("SHOW INDEX FROM sun_sync_settings WHERE Key_name = 'sun_sync_settings_inverter_sn_index'"))
-            ->isNotEmpty();
+        $connection = Schema::getConnection();
+        $driver = $connection->getDriverName();
         
-        $compositeIndexExists = collect(Schema::getConnection()
-            ->select("SHOW INDEX FROM sun_sync_settings WHERE Key_name = 'sun_sync_settings_inverter_sn_last_updated_index'"))
-            ->isNotEmpty();
+        // Check if indexes exist using database-specific syntax
+        $indexExists = false;
+        $compositeIndexExists = false;
+        
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            $indexExists = collect($connection
+                ->select("SHOW INDEX FROM sun_sync_settings WHERE Key_name = 'sun_sync_settings_inverter_sn_index'"))
+                ->isNotEmpty();
+            
+            $compositeIndexExists = collect($connection
+                ->select("SHOW INDEX FROM sun_sync_settings WHERE Key_name = 'sun_sync_settings_inverter_sn_last_updated_index'"))
+                ->isNotEmpty();
+        } elseif ($driver === 'sqlite') {
+            // For SQLite, check index list
+            $indexes = $connection->select("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='sun_sync_settings'");
+            $indexNames = collect($indexes)->pluck('name')->toArray();
+            
+            $indexExists = in_array('sun_sync_settings_inverter_sn_index', $indexNames);
+            $compositeIndexExists = in_array('sun_sync_settings_inverter_sn_last_updated_index', $indexNames);
+        }
         
         Schema::table('sun_sync_settings', function (Blueprint $table) use ($indexExists, $compositeIndexExists) {
             // Add index on inverter_sn for faster lookups if it doesn't exist
@@ -40,16 +55,31 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('sun_sync_settings', function (Blueprint $table) {
-            // Check if indexes exist before dropping
-            $indexExists = collect(Schema::getConnection()
+        $connection = Schema::getConnection();
+        $driver = $connection->getDriverName();
+        
+        // Check if indexes exist using database-specific syntax
+        $indexExists = false;
+        $compositeIndexExists = false;
+        
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            $indexExists = collect($connection
                 ->select("SHOW INDEX FROM sun_sync_settings WHERE Key_name = 'sun_sync_settings_inverter_sn_index'"))
                 ->isNotEmpty();
             
-            $compositeIndexExists = collect(Schema::getConnection()
+            $compositeIndexExists = collect($connection
                 ->select("SHOW INDEX FROM sun_sync_settings WHERE Key_name = 'sun_sync_settings_inverter_sn_last_updated_index'"))
                 ->isNotEmpty();
+        } elseif ($driver === 'sqlite') {
+            // For SQLite, check index list
+            $indexes = $connection->select("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='sun_sync_settings'");
+            $indexNames = collect($indexes)->pluck('name')->toArray();
             
+            $indexExists = in_array('sun_sync_settings_inverter_sn_index', $indexNames);
+            $compositeIndexExists = in_array('sun_sync_settings_inverter_sn_last_updated_index', $indexNames);
+        }
+        
+        Schema::table('sun_sync_settings', function (Blueprint $table) use ($indexExists, $compositeIndexExists) {
             // Drop the indexes if they exist
             if ($indexExists) {
                 $table->dropIndex(['inverter_sn']);

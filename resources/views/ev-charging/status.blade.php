@@ -19,6 +19,50 @@
                 </div>
 
                 <div class="card-body">
+                    {{-- Inverter Status Banner --}}
+                    @if(isset($inverterInfo) && isset($inverterSettings))
+                        @php
+                            $currentMode = $inverterSettings['sysWorkMode'] ?? '2';
+                            $isDischargeMode = $currentMode === '0';
+                            $modeText = $isDischargeMode ? 'Discharge Mode' : 'Normal Mode';
+                            $modeColor = $isDischargeMode ? 'warning' : 'success';
+                            $modeIcon = $isDischargeMode ? 'battery-charging' : 'house-check';
+                            $inverterModel = $inverterInfo['model'] ?? $inverterInfo['inverterModel'] ?? 'Unknown Model';
+                            $inverterSn = $inverterInfo['sn'] ?? 'N/A';
+                        @endphp
+                        <div class="alert alert-{{ $modeColor }} alert-dismissible fade show d-flex align-items-center" role="alert">
+                            <i class="bi bi-{{ $modeIcon }} fs-4 me-3"></i>
+                            <div class="flex-grow-1">
+                                <strong>Inverter Status:</strong> {{ $inverterModel }} (S/N: {{ $inverterSn }})
+                                <span class="badge bg-{{ $modeColor }} ms-2">{{ $modeText }}</span>
+                                @if($isDischargeMode)
+                                    <small class="d-block text-muted mt-1">
+                                        <i class="bi bi-arrow-down-circle"></i> Battery is discharging to grid
+                                    </small>
+                                @else
+                                    <small class="d-block text-muted mt-1">
+                                        <i class="bi bi-check-circle"></i> Operating in normal mode (limited to home)
+                                    </small>
+                                @endif
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle"></i> {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    @if(session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle"></i> {{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
                     @if(request()->has('test_mode'))
                         <div class="alert alert-warning">
                             <strong>Test Mode Active:</strong> Simulating EV charging status
@@ -297,6 +341,141 @@
                                         <li><strong>Slot 5</strong> is automatically adjusted when EV charges during daytime</li>
                                         <li><strong>Night Time</strong> prevents EV charging adjustments during specified hours</li>
                                     </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Battery Discharge to Grid Settings -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning bg-opacity-10">
+                                    <h6 class="mb-0">🔋 Battery Discharge to Grid Settings</h6>
+                                    <small class="text-muted">Configure automatic battery discharge to grid during evening peak hours</small>
+                                </div>
+                                <div class="card-body">
+                                    <form action="{{ route('ev-charging.settings.update') }}" method="POST" id="batteryDischargeForm">
+                                        @csrf
+                                        
+                                        <div class="row">
+                                            <!-- Enable/Disable Feature -->
+                                            <div class="col-md-12 mb-3">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" name="discharge_enabled" value="true" 
+                                                           id="dischargeEnabled" {{ ($settings['discharge_enabled'] ?? 'false') === 'true' ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="dischargeEnabled">
+                                                        <strong>Enable Battery Discharge to Grid</strong>
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted">When enabled, the system will automatically discharge excess battery to the grid during configured times</small>
+                                            </div>
+                                        </div>
+
+                                        <div id="dischargeSettingsPanel" style="{{ ($settings['discharge_enabled'] ?? 'false') === 'true' ? '' : 'display: none;' }}">
+                                            <div class="row">
+                                                <!-- Battery Size -->
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="batterySizeWh" class="form-label">Total Battery Capacity (Wh)</label>
+                                                    <input type="number" class="form-control" id="batterySizeWh" name="battery_size_wh" 
+                                                           value="{{ $settings['battery_size_wh'] ?? '10000' }}" min="1000" max="100000" step="100">
+                                                    <small class="form-text text-muted">Example: 10kWh battery = 10000 Wh</small>
+                                                </div>
+
+                                                <!-- Discharge Rate -->
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="dischargeRateW" class="form-label">Discharge Rate (W)</label>
+                                                    <input type="number" class="form-control" id="dischargeRateW" name="discharge_rate_w" 
+                                                           value="{{ $settings['discharge_rate_w'] ?? '2750' }}" min="100" max="10000" step="50">
+                                                    <small class="form-text text-muted">Maximum discharge power output (e.g., 2750W)</small>
+                                                </div>
+
+                                                <!-- House Load -->
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="houseLoadW" class="form-label">Average House Load (W)</label>
+                                                    <input type="number" class="form-control" id="houseLoadW" name="house_load_w" 
+                                                           value="{{ $settings['house_load_w'] ?? '350' }}" min="0" max="5000" step="10">
+                                                    <small class="form-text text-muted">Average power consumption (e.g., 350W)</small>
+                                                </div>
+                                            </div>
+
+                                            <div class="row">
+                                                <!-- Discharge To SOC -->
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="dischargeToSoc" class="form-label">Discharge To (% SOC)</label>
+                                                    <input type="number" class="form-control" id="dischargeToSoc" name="discharge_to_soc" 
+                                                           value="{{ $settings['discharge_to_soc'] ?? '20' }}" min="0" max="100" step="1">
+                                                    <small class="form-text text-muted">Stop discharging when battery reaches this level (e.g., 20%)</small>
+                                                </div>
+
+                                                <!-- Minimum SOC at Check Time -->
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="dischargeMinSoc" class="form-label">Minimum SOC at Check Time (%)</label>
+                                                    <input type="number" class="form-control" id="dischargeMinSoc" name="discharge_min_soc" 
+                                                           value="{{ $settings['discharge_min_soc'] ?? '50' }}" min="0" max="100" step="1">
+                                                    <small class="form-text text-muted">Don't enable discharge if battery is below this at check time (e.g., 50%)</small>
+                                                </div>
+                                            </div>
+
+                                            <div class="row">
+                                                <!-- Check Time -->
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="dischargeCheckTime" class="form-label">Check Time</label>
+                                                    <input type="time" class="form-control" id="dischargeCheckTime" name="discharge_check_time" 
+                                                           value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['discharge_check_time'] ?? '20:00')->format('H:i') }}">
+                                                    <small class="form-text text-muted">Time to check if discharge should be enabled (e.g., 20:00 for 8pm)</small>
+                                                </div>
+
+                                                <!-- Stop Time -->
+                                                <div class="col-md-4 mb-3">
+                                                    <label for="dischargeStopTime" class="form-label">Stop Time</label>
+                                                    <input type="time" class="form-control" id="dischargeStopTime" name="discharge_stop_time" 
+                                                           value="{{ \Carbon\Carbon::createFromFormat('H:i', $settings['discharge_stop_time'] ?? '23:45')->format('H:i') }}">
+                                                    <small class="form-text text-muted">Time to stop discharge and return to normal (e.g., 23:45)</small>
+                                                </div>
+
+                                                <!-- Calculated Start Time (Display Only) -->
+                                                <div class="col-md-4 mb-3">
+                                                    <label class="form-label">Calculated Start Time</label>
+                                                    <div class="form-control bg-light" id="calculatedStartTime">--:--</div>
+                                                    <small class="form-text text-muted">Calculated based on battery level and discharge rate</small>
+                                                </div>
+                                            </div>
+
+                                            <div class="alert alert-info">
+                                                <strong>ℹ️ How Battery Discharge Works:</strong>
+                                                <ul class="mb-0 mt-2">
+                                                    <li><strong>Check Time:</strong> At the check time (e.g., 8pm), the system checks if battery SOC is above the minimum level (e.g., 50%)</li>
+                                                    <li><strong>Calculation:</strong> System accounts for house consumption during <u>waiting period</u> only:<br>
+                                                        <code>1. Energy = Battery Size × (Current SOC - Target SOC)</code><br>
+                                                        <code>2. Initial Time = Energy ÷ Discharge Rate</code><br>
+                                                        <code>3. Initial Start = Stop Time - Initial Time</code><br>
+                                                        <code>4. Waiting Period = Initial Start - Check Time</code><br>
+                                                        <code>5. House Consumption = Waiting Period × House Load</code><br>
+                                                        <code>6. Adjusted Energy = Energy - House Consumption</code><br>
+                                                        <code>7. Final Hours = Adjusted Energy ÷ Discharge Rate</code><br>
+                                                        <small class="d-block mt-1">Example (80% → 20%, Check 8pm, Stop 11:45pm):<br>
+                                                        Energy = 10000 × 0.60 = 6000 Wh<br>
+                                                        Initial = 6000 ÷ 2750 = 2.18h → Start ~9:34pm<br>
+                                                        Waiting = 9:34pm - 8:00pm = 1.57h<br>
+                                                        House = 1.57h × 350W = 550 Wh<br>
+                                                        Adjusted = 6000 - 550 = 5450 Wh<br>
+                                                        Final = 5450 ÷ 2750 = <strong>1.98 hours → Start ~9:47pm</strong></small>
+                                                    </li>
+                                                    <li><strong>Why?</strong> House drains battery while <em>waiting</em> (check to start). During <em>discharge</em>, house is powered from grid.</li>
+                                                    <li><strong>Start Time:</strong> Discharge starts at: Stop Time - Final Hours</li>
+                                                    <li><strong>Stops When:</strong> Either reaches discharge-to SOC level OR stop time - whichever comes first</li>
+                                                    <li><strong>EV Priority:</strong> Discharge is blocked if EV is plugged in or charging</li>
+                                                    <li><strong>Reset:</strong> System returns to normal settings at stop time every night</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-warning" id="saveDischargeBtn">
+                                            <i class="bi bi-save"></i> Save Discharge Settings
+                                        </button>
+                                        <small class="text-muted ms-2">Click Save to persist your changes</small>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -1117,5 +1296,121 @@ function showToast(title, message, type = 'info') {
     const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
     alert(`${icon} ${title}\n\n${message}`);
 }
+
+// Battery Discharge Settings UI Handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle discharge settings panel
+    const dischargeEnabledCheckbox = document.getElementById('dischargeEnabled');
+    const dischargeSettingsPanel = document.getElementById('dischargeSettingsPanel');
+    
+    if (dischargeEnabledCheckbox) {
+        dischargeEnabledCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                dischargeSettingsPanel.style.display = 'block';
+            } else {
+                dischargeSettingsPanel.style.display = 'none';
+            }
+        });
+    }
+    
+    // Calculate discharge start time (accounting for house load during waiting period)
+    function calculateDischargeStartTime() {
+        const batterySize = parseFloat(document.getElementById('batterySizeWh')?.value || 10000);
+        const dischargeRate = parseFloat(document.getElementById('dischargeRateW')?.value || 2750);
+        const houseLoad = parseFloat(document.getElementById('houseLoadW')?.value || 350);
+        const dischargeToSoc = parseFloat(document.getElementById('dischargeToSoc')?.value || 20);
+        const checkTime = document.getElementById('dischargeCheckTime')?.value || '20:00';
+        const stopTime = document.getElementById('dischargeStopTime')?.value || '23:45';
+        
+        // Assume current SOC is 80% for demonstration
+        const currentSoc = 80;
+        
+        if (dischargeRate <= 0) {
+            const calculatedStartTimeElement = document.getElementById('calculatedStartTime');
+            if (calculatedStartTimeElement) {
+                calculatedStartTimeElement.textContent = 'Error: Invalid discharge rate';
+                calculatedStartTimeElement.className = 'form-control bg-danger text-white';
+            }
+            return;
+        }
+        
+        // Step 1: Calculate total energy available (Wh)
+        const energyAvailable = batterySize * ((currentSoc - dischargeToSoc) / 100);
+        
+        // Step 2: Calculate initial discharge time (hours)
+        const initialDischargeTime = energyAvailable / dischargeRate;
+        
+        // Step 3: Calculate initial start time (Stop Time - Initial discharge time)
+        const [stopHours, stopMinutes] = stopTime.split(':').map(Number);
+        const stopTimeDate = new Date();
+        stopTimeDate.setHours(stopHours, stopMinutes, 0, 0);
+        
+        const initialStartTime = new Date(stopTimeDate.getTime() - (initialDischargeTime * 60 * 60 * 1000));
+        
+        // Step 4: Calculate waiting period (from check time to start time)
+        const [checkHours, checkMinutes] = checkTime.split(':').map(Number);
+        const checkTimeDate = new Date();
+        checkTimeDate.setHours(checkHours, checkMinutes, 0, 0);
+        
+        let waitingPeriodHours = (initialStartTime - checkTimeDate) / (1000 * 60 * 60);
+        
+        // If start time is before check time, no waiting period
+        if (waitingPeriodHours < 0) {
+            waitingPeriodHours = 0;
+        }
+        
+        // Step 5: Calculate house consumption during waiting period (Wh)
+        const houseConsumption = waitingPeriodHours * houseLoad;
+        
+        // Step 6: Calculate adjusted energy (Wh)
+        const adjustedEnergy = energyAvailable - houseConsumption;
+        
+        if (adjustedEnergy <= 0) {
+            const calculatedStartTimeElement = document.getElementById('calculatedStartTime');
+            if (calculatedStartTimeElement) {
+                calculatedStartTimeElement.textContent = 'Error: House consumption during waiting exceeds energy';
+                calculatedStartTimeElement.className = 'form-control bg-danger text-white';
+            }
+            return;
+        }
+        
+        // Step 7: Calculate final discharge hours
+        const finalDischargeHours = adjustedEnergy / dischargeRate;
+        
+        // Calculate final start time
+        const finalStartTime = new Date(stopTimeDate.getTime() - (finalDischargeHours * 60 * 60 * 1000));
+        const startTimeFormatted = finalStartTime.toTimeString().slice(0, 5);
+        
+        // Update display with detailed info
+        const calculatedStartTimeElement = document.getElementById('calculatedStartTime');
+        if (calculatedStartTimeElement) {
+            const energyToGridKwh = (adjustedEnergy / 1000).toFixed(2);
+            const waitingFormatted = waitingPeriodHours.toFixed(2);
+            calculatedStartTimeElement.textContent = startTimeFormatted + ' (' + finalDischargeHours.toFixed(2) + ' hours, ' + energyToGridKwh + ' kWh to grid, ' + waitingFormatted + 'h wait)';
+            calculatedStartTimeElement.className = 'form-control bg-light';
+        }
+    }
+    
+    // Add event listeners to recalculate when inputs change
+    const batteryInputs = [
+        'batterySizeWh',
+        'dischargeRateW',
+        'houseLoadW',
+        'dischargeToSoc',
+        'dischargeCheckTime',
+        'dischargeStopTime'
+    ];
+    
+    batteryInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('input', calculateDischargeStartTime);
+            input.addEventListener('change', calculateDischargeStartTime);
+        }
+    });
+    
+    // Initial calculation
+    calculateDischargeStartTime();
+});
 </script>
 @endsection 
