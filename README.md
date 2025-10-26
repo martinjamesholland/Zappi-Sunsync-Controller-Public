@@ -15,10 +15,12 @@ This application is a **unified energy management platform** that integrates mul
 
 ✅ **Real-Time Visibility** - See exactly where your energy is coming from and going to, in real-time  
 ✅ **Smart Optimization** - Automatically manage battery charging and EV charging based on solar generation  
+✅ **Battery Discharge to Grid** - Intelligently discharge excess battery power to the grid during peak hours  
 ✅ **Cost Reduction** - Maximize use of free solar energy and minimize grid consumption  
 ✅ **Historical Analytics** - Track your energy production, consumption, and savings over time  
 ✅ **Remote Control** - Manage your system from anywhere via the web interface  
 ✅ **Unified Dashboard** - One place to monitor all your energy systems instead of multiple apps  
+✅ **Inverter Status Monitoring** - Always see your inverter current operating mode  
 
 ---
 
@@ -72,6 +74,8 @@ Intelligent EV charging management based on solar generation:
 - Automatic inverter control based on EV charging status
 - Night time range settings
 - Grid charge control per time slot
+- **Battery discharge to grid feature** with smart scheduling
+- Real-time inverter status display (model, mode, serial number)
 - Detailed logging and API call tracking
 - Cron job setup instructions for automation
 
@@ -933,6 +937,13 @@ Special thanks to all contributors who have helped improve this project!
 ---
 
 ## 📈 Roadmap
+
+Recent enhancements completed:
+
+- [x] Battery discharge to grid feature with intelligent scheduling
+- [x] Real-time inverter status display (model, mode, serial)
+- [x] Smart discharge calculation accounting for house load during waiting period
+- [x] EV priority logic (blocks discharge when EV connected/charging)
 
 Future enhancements planned:
 

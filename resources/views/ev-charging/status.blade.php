@@ -33,7 +33,7 @@
                         <div class="alert alert-{{ $modeColor }} alert-dismissible fade show d-flex align-items-center" role="alert">
                             <i class="bi bi-{{ $modeIcon }} fs-4 me-3"></i>
                             <div class="flex-grow-1">
-                                <strong>Inverter Status:</strong> {{ $inverterModel }} (S/N: {{ $inverterSn }})
+                                <strong>Inverter Status:</strong> {{ $inverterModel }}
                                 <span class="badge bg-{{ $modeColor }} ms-2">{{ $modeText }}</span>
                                 @if($isDischargeMode)
                                     <small class="d-block text-muted mt-1">
