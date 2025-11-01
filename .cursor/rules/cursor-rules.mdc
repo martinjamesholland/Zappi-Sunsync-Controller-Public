@@ -1,9 +1,24 @@
 ---
-description: How to add or edit Cursor rules in our project
-globs: 
-alwaysApply: false
+description: Guidelines for managing and creating Cursor rules in the MEDRSv4 project
+globs: ".cursor/rules/**/*"
+alwaysApply: true
+priority: high
+lastUpdated: 2025-10-19
 ---
-# Cursor Rules Location
+
+# Managing Cursor Rules
+
+## ⚡ When to Use This Rule
+
+**Use this rule when:**
+- Creating a new rule file
+- Updating existing rules
+- Organizing rule documentation
+- Deciding where to document a pattern
+
+---
+
+## Directory Structure
 
 How to add new cursor rules to the project
 
@@ -35,7 +50,11 @@ How to add new cursor rules to the project
     - In subdirectories outside .cursor/rules
     - In any other location
 
-5. Cursor rules have the following structure:
+5. **Index File**: All rules are documented in [README.md](./.cursor/rules/README.md)
+
+## Rule File Structure
+
+Cursor rules have the following structure:
 
 ````
 ---
@@ -64,3 +83,80 @@ function badExample() {
 }
 ```
 ````
+
+## Frontmatter Fields Explained
+
+- **description**: One-line summary (required)
+- **globs**: File patterns this rule applies to (optional)
+  - Use specific patterns like `"app/Http/Controllers/**/*"`
+  - Omit or use `"**/*"` for global rules
+- **alwaysApply**: `true` for rules that should always be considered
+- **priority**: `critical`, `high`, `medium`, or `low`
+- **lastUpdated**: Date of last significant change (YYYY-MM-DD)
+- **relatedRules**: List of related rule files
+
+## When to Create a New Rule File
+
+Create a new rule when:
+- ✅ The topic is substantial (>200 lines)
+- ✅ It's referenced frequently
+- ✅ It applies to a specific area (e.g., "API Design Patterns")
+- ✅ It documents a critical pattern that must be followed
+
+**Don't create rules for:**
+- ❌ One-time scenarios
+- ❌ Topics covered in existing rules
+- ❌ Temporary solutions
+
+## When to Update Existing Rules
+
+Update an existing rule when:
+- You discover a new pattern or anti-pattern
+- Requirements change
+- Common mistakes are identified
+- Better examples are available
+
+**ALWAYS when updating:**
+1. Update the `lastUpdated` field in frontmatter
+2. Add entry to the Change Log section at bottom
+3. Test that examples still work
+4. Update related rules if needed
+5. Update [README.md](./README.md) if category changes
+
+## Maintenance Schedule
+
+- **Weekly**: Check for new common patterns
+- **Monthly**: Review for outdated examples
+- **Quarterly**: Check for consolidation opportunities
+- **After major changes**: Update affected rules immediately
+
+## Change Log Format
+
+Add at the bottom of updated files:
+
+```markdown
+---
+## Change Log
+
+### 2025-10-19
+- Added section on mobile-first design
+- Updated code examples for Laravel 12
+- Cross-referenced responsive-table-pattern.mdc
+
+### 2025-09-15
+- Initial creation
+```
+
+## Related Rules
+- **[README.md](./README.md)** - Index of all rules
+- All other rules in this directory
+
+---
+
+## Change Log
+
+### 2025-10-19
+- Expanded with comprehensive rule management guidelines
+- Added frontmatter field explanations
+- Added maintenance schedule
+- Added "When to Use" section

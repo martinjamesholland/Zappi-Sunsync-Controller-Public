@@ -1,0 +1,608 @@
+---
+description: Guidelines for creating user-friendly interfaces with preference for select controls over text inputs
+alwaysApply: true
+priority: high
+lastUpdated: 2025-10-19
+relatedRules:
+  - configurable-dropdowns-lists.mdc
+  - responsive-table-pattern.mdc
+  - blade-template-syntax.mdc
+  - common-js-css-standards.mdc
+---
+
+# User-Friendly UI Patterns
+
+## ⚡ When to Use This Rule
+
+**Use this rule when:**
+- Creating ANY form input
+- Choosing between text input vs dropdown
+- Designing user data entry interfaces
+- Building search/filter forms
+
+**This rule helps with:**
+- Consistent data quality
+- Better mobile UX
+- Reduced user errors
+- Easier validation
+
+---
+
+## Core Principle
+
+**ALWAYS prefer selection-based controls (dropdowns, radio buttons, checkboxes) over free text input when the options are known or can be predefined.**
+
+This improves:
+- **Data Quality**: Consistent, validated entries
+- **User Experience**: Faster input, less typing
+- **Mobile Experience**: Better than typing on small screens
+- **Accessibility**: Screen readers handle select controls better
+- **Search/Filter**: Standardized data is easier to query
+
+---
+
+## When to Use Selection Controls vs Text Input
+
+### ✅ USE Selection Controls (Dropdown/Radio/Checkbox) When:
+
+1. **Limited Known Options** (< 50 items)
+   - Gender: Male, Female, Other, Prefer not to say
+   - Status: Active, Inactive, Pending
+   - Priority: Low, Medium, High, Critical
+   - Yes/No questions
+   - Days of the week
+   - Months
+
+2. **Standardized Values**
+   - Countries, states, cities
+   - Medical conditions from a known list
+   - Medication types
+   - Document categories
+   - Appointment types
+   - Blood types
+
+3. **Categorization/Classification**
+   - Patient types (Day, Boarding)
+   - User roles
+   - Department/location assignments
+   - Visit reasons
+   - Allergy types
+
+4. **Date/Time Inputs**
+   - Always use date pickers (not free text)
+   - Time pickers for specific times
+   - Duration dropdowns when appropriate
+
+5. **Boolean Choices**
+   - Use toggle switches or radio buttons
+   - NOT a text field with "yes/no" typed
+
+### ❌ USE Text Input When:
+
+1. **Unique Identifiers**
+   - Patient names
+   - Custom descriptions/notes
+   - Addresses (though consider separate fields with some dropdowns)
+   - Email addresses
+   - Phone numbers
+
+2. **Unlimited Possibilities**
+   - Search queries
+   - Free-form comments/notes
+   - Custom instructions
+   - Variable-length descriptions
+
+3. **Numeric Values Without Fixed Range**
+   - Weight, height measurements
+   - Dosage amounts (when highly variable)
+   - Custom quantities
+
+---
+
+## Form Control Patterns
+
+### Pattern 1: Dropdown Select (Most Common)
+
+**Use for**: 5-50 options, single selection
+
+```blade
+<!-- ✅ GOOD - Dropdown for known options -->
+<div class="mb-3">
+    <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
+    <select class="form-select" id="gender" name="gender" required>
+        <option value="">-- Select Gender --</option>
+        <option value="Male" {{ old('gender', $patient->gender ?? '') == 'Male' ? 'selected' : '' }}>Male</option>
+        <option value="Female" {{ old('gender', $patient->gender ?? '') == 'Female' ? 'selected' : '' }}>Female</option>
+        <option value="Other" {{ old('gender', $patient->gender ?? '') == 'Other' ? 'selected' : '' }}>Other</option>
+        <option value="Prefer not to say" {{ old('gender', $patient->gender ?? '') == 'Prefer not to say' ? 'selected' : '' }}>Prefer not to say</option>
+    </select>
+    <div class="invalid-feedback">Please select a gender</div>
+</div>
+
+<!-- ❌ BAD - Free text for limited options -->
+<div class="mb-3">
+    <label for="gender" class="form-label">Gender</label>
+    <input type="text" class="form-control" id="gender" name="gender" 
+           placeholder="Enter gender (Male/Female/Other)">
+    <!-- Users will type: male, MALE, M, Man, etc. - inconsistent data! -->
+</div>
+```
+
+### Pattern 2: Radio Buttons
+
+**Use for**: 2-5 options, single selection, options need to be visible
+
+```blade
+<!-- ✅ GOOD - Radio buttons for clearly visible options -->
+<div class="mb-3">
+    <label class="form-label">Student Type <span class="text-danger">*</span></label>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="student_type" id="student_type_day" 
+               value="Day" {{ old('student_type', $patient->student_type ?? '') == 'Day' ? 'checked' : '' }}>
+        <label class="form-check-label" for="student_type_day">Day Student</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="student_type" id="student_type_boarding" 
+               value="Boarding" {{ old('student_type', $patient->student_type ?? '') == 'Boarding' ? 'checked' : '' }}>
+        <label class="form-check-label" for="student_type_boarding">Boarding Student</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="student_type" id="student_type_none" 
+               value="None" {{ old('student_type', $patient->student_type ?? '') == 'None' ? 'checked' : '' }}>
+        <label class="form-check-label" for="student_type_none">Not a Student</label>
+    </div>
+</div>
+```
+
+### Pattern 3: Checkboxes (Multi-Select)
+
+**Use for**: Multiple selections allowed, options need to be visible
+
+```blade
+<!-- ✅ GOOD - Checkboxes for multiple selections -->
+<div class="mb-3">
+    <label class="form-label">School Locations <span class="text-danger">*</span></label>
+    <small class="d-block text-muted mb-2">Select all that apply</small>
+    
+    @foreach($locations as $location)
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="school_location[]" 
+                   id="location_{{ $location->id }}" value="{{ $location->id }}"
+                   {{ in_array($location->id, old('school_location', $patient->school_location ?? [])) ? 'checked' : '' }}>
+            <label class="form-check-label" for="location_{{ $location->id }}">
+                {{ $location->name }}
+            </label>
+        </div>
+    @endforeach
+</div>
+```
+
+### Pattern 4: Toggle Switches
+
+**Use for**: Boolean yes/no options, immediate visual feedback
+
+```blade
+<!-- ✅ GOOD - Toggle switch for boolean -->
+<div class="mb-3">
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+               {{ old('is_active', $user->is_active ?? true) ? 'checked' : '' }}>
+        <label class="form-check-label" for="is_active">
+            Active Account
+        </label>
+    </div>
+    <small class="text-muted">Inactive accounts cannot log in</small>
+</div>
+
+<!-- ❌ BAD - Dropdown for simple yes/no -->
+<select name="is_active">
+    <option value="1">Active</option>
+    <option value="0">Inactive</option>
+</select>
+```
+
+### Pattern 5: Date Picker
+
+**Use for**: All date inputs (NEVER free text dates)
+
+```blade
+<!-- ✅ GOOD - Date picker -->
+<div class="mb-3">
+    <label for="date_of_birth" class="form-label">Date of Birth <span class="text-danger">*</span></label>
+    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+           value="{{ old('date_of_birth', $patient->date_of_birth ?? '') }}" required>
+    <small class="text-muted">Format: DD/MM/YYYY</small>
+</div>
+
+<!-- ❌ BAD - Free text date (users will enter inconsistent formats) -->
+<input type="text" name="date_of_birth" placeholder="Enter date of birth">
+<!-- Users will type: 01/05/2000, 5-1-2000, May 1 2000, 5th Jan 2000, etc. -->
+```
+
+### Pattern 6: Searchable Dropdown (Select2 or Similar)
+
+**Use for**: 50+ options, single selection, needs search capability
+
+```blade
+<!-- ✅ GOOD - Searchable select for large lists -->
+<div class="mb-3">
+    <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
+    <select class="form-select select2" id="country" name="country" required>
+        <option value="">-- Select Country --</option>
+        @foreach($countries as $country)
+            <option value="{{ $country->code }}" 
+                    {{ old('country', $patient->country ?? '') == $country->code ? 'selected' : '' }}>
+                {{ $country->name }}
+            </option>
+        @endforeach
+    </select>
+</div>
+
+<script>
+    // Initialize Select2 for searchable dropdown
+    $('#country').select2({
+        placeholder: '-- Select Country --',
+        allowClear: true,
+        width: '100%'
+    });
+</script>
+```
+
+### Pattern 7: Hybrid Approach (Select + "Other" Text Field)
+
+**Use for**: When most options are known, but allow custom entry
+
+```blade
+<!-- ✅ GOOD - Dropdown with "Other" option -->
+<div class="mb-3">
+    <label for="allergy_type" class="form-label">Allergy Type</label>
+    <select class="form-select" id="allergy_type" name="allergy_type" onchange="toggleOtherField(this)">
+        <option value="">-- Select Type --</option>
+        <option value="Food">Food Allergy</option>
+        <option value="Medication">Medication Allergy</option>
+        <option value="Environmental">Environmental Allergy</option>
+        <option value="Other">Other (Please Specify)</option>
+    </select>
+</div>
+
+<!-- Hidden until "Other" is selected -->
+<div class="mb-3" id="other_allergy_type_container" style="display: none;">
+    <label for="other_allergy_type" class="form-label">Please Specify</label>
+    <input type="text" class="form-control" id="other_allergy_type" name="other_allergy_type">
+</div>
+
+<script>
+    function toggleOtherField(select) {
+        const container = document.getElementById('other_allergy_type_container');
+        if (select.value === 'Other') {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+</script>
+```
+
+---
+
+## Address Form Pattern
+
+**Special Case**: Addresses benefit from a hybrid approach
+
+```blade
+<!-- ✅ GOOD - Structured address with dropdowns where possible -->
+<div class="row">
+    <div class="col-md-8 mb-3">
+        <label for="address_line1" class="form-label">Address Line 1 <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="address_line1" name="address_line1" required>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="house_number" class="form-label">House Number</label>
+        <input type="text" class="form-control" id="house_number" name="house_number">
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label for="city" class="form-label">City <span class="text-danger">*</span></label>
+        <!-- If UK only, use dropdown of UK cities -->
+        <select class="form-select select2" id="city" name="city" required>
+            <option value="">-- Select City --</option>
+            @foreach($cities as $city)
+                <option value="{{ $city }}">{{ $city }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="county" class="form-label">County</label>
+        <select class="form-select" id="county" name="county">
+            <option value="">-- Select County --</option>
+            @foreach($counties as $county)
+                <option value="{{ $county }}">{{ $county }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="postcode" class="form-label">Postcode <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="postcode" name="postcode" 
+               pattern="[A-Z]{1,2}[0-9]{1,2}[A-Z]?\s?[0-9][A-Z]{2}" required>
+        <small class="text-muted">e.g., SW1A 1AA</small>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
+    <select class="form-select" id="country" name="country" required>
+        <option value="">-- Select Country --</option>
+        <option value="GB" selected>United Kingdom</option>
+        <option value="IE">Ireland</option>
+        <!-- Other countries... -->
+    </select>
+</div>
+```
+
+---
+
+## Search & Filter Forms
+
+**Prefer multi-select dropdowns for filters over text input**
+
+```blade
+<!-- ✅ GOOD - Filter with dropdowns -->
+<form method="GET" action="{{ route('admin.patients.index') }}" id="filter-form">
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label for="filter_gender" class="form-label">Gender</label>
+            <select class="form-select" id="filter_gender" name="gender" onchange="this.form.submit()">
+                <option value="">All Genders</option>
+                <option value="Male" {{ request('gender') == 'Male' ? 'selected' : '' }}>Male</option>
+                <option value="Female" {{ request('gender') == 'Female' ? 'selected' : '' }}>Female</option>
+                <option value="Other" {{ request('gender') == 'Other' ? 'selected' : '' }}>Other</option>
+            </select>
+        </div>
+        
+        <div class="col-md-3">
+            <label for="filter_student_type" class="form-label">Student Type</label>
+            <select class="form-select" id="filter_student_type" name="student_type" onchange="this.form.submit()">
+                <option value="">All Types</option>
+                <option value="Day" {{ request('student_type') == 'Day' ? 'selected' : '' }}>Day</option>
+                <option value="Boarding" {{ request('student_type') == 'Boarding' ? 'selected' : '' }}>Boarding</option>
+            </select>
+        </div>
+        
+        <div class="col-md-3">
+            <label for="filter_location" class="form-label">Location</label>
+            <select class="form-select" id="filter_location" name="location" onchange="this.form.submit()">
+                <option value="">All Locations</option>
+                @foreach($locations as $location)
+                    <option value="{{ $location->id }}" {{ request('location') == $location->id ? 'selected' : '' }}>
+                        {{ $location->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        
+        <div class="col-md-3">
+            <label for="search" class="form-label">Search Name/Number</label>
+            <input type="text" class="form-control" id="search" name="search" 
+                   value="{{ request('search') }}" placeholder="Search...">
+        </div>
+    </div>
+</form>
+```
+
+---
+
+## Mobile-Friendly Considerations
+
+### Rule 1: Native Controls Work Best on Mobile
+
+```blade
+<!-- ✅ GOOD - Native date picker (mobile-friendly) -->
+<input type="date" class="form-control" name="date_of_birth">
+
+<!-- ✅ GOOD - Native time picker (mobile-friendly) -->
+<input type="time" class="form-control" name="appointment_time">
+
+<!-- ✅ GOOD - Native select (mobile-friendly) -->
+<select class="form-select" name="priority">
+    <option value="Low">Low</option>
+    <option value="Medium">Medium</option>
+    <option value="High">High</option>
+</select>
+```
+
+### Rule 2: Large Touch Targets
+
+```css
+/* Ensure all form controls have adequate touch targets (min 44x44px) */
+.form-select,
+.form-control,
+.btn {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+}
+
+.form-check-input {
+    width: 24px;
+    height: 24px;
+}
+```
+
+---
+
+## Accessibility Best Practices
+
+### Always Include:
+
+1. **Label Elements**
+   ```blade
+   <label for="field_id" class="form-label">Field Name</label>
+   <select class="form-select" id="field_id" name="field_name">
+       <!-- options -->
+   </select>
+   ```
+
+2. **Required Indicators**
+   ```blade
+   <label for="gender" class="form-label">
+       Gender <span class="text-danger" aria-label="required">*</span>
+   </label>
+   ```
+
+3. **Help Text**
+   ```blade
+   <small class="form-text text-muted">
+       Select the appropriate category from the list
+   </small>
+   ```
+
+4. **Error Messages**
+   ```blade
+   <div class="invalid-feedback">
+       Please select a valid option
+   </div>
+   ```
+
+---
+
+## Data Quality Benefits
+
+### Example: Medication Entry
+
+```blade
+<!-- ❌ BAD - Free text (leads to inconsistent data) -->
+<input type="text" name="medication_name" placeholder="Enter medication name">
+<!-- Users will enter:
+     - "Paracetamol", "paracetamol", "PARACETAMOL"
+     - "Paracetamol 500mg", "Paracetamol (500mg)"
+     - Misspellings: "Paracetomol", "Paracetmol"
+     = Database has 50+ variations of the same medication! -->
+
+<!-- ✅ GOOD - Dropdown with search (consistent data) -->
+<select class="form-select select2" name="medication_id" required>
+    <option value="">-- Select Medication --</option>
+    @foreach($medications as $medication)
+        <option value="{{ $medication->id }}">
+            {{ $medication->name }} - {{ $medication->strength }}
+        </option>
+    @endforeach
+</select>
+<!-- Result: Clean, consistent, searchable data -->
+```
+
+---
+
+## Testing Checklist
+
+Before deploying forms, verify:
+
+- [ ] All selection controls have clear labels
+- [ ] Required fields are marked with `<span class="text-danger">*</span>`
+- [ ] Dropdown has "-- Select X --" placeholder option
+- [ ] Date inputs use `type="date"` not text input
+- [ ] Boolean options use toggle switches or radio buttons
+- [ ] Multi-select options use checkboxes or multi-select dropdown
+- [ ] Long lists (>50 items) have search functionality
+- [ ] Form validation provides clear error messages
+- [ ] All controls have min 44px height for mobile
+- [ ] Tested on mobile device (not just desktop)
+- [ ] Tab navigation works logically
+- [ ] Screen reader can read all labels and options
+
+---
+
+## Common Mistakes to Avoid
+
+### ❌ MISTAKE 1: Text Input for Limited Options
+```blade
+<!-- BAD -->
+<input type="text" name="priority" placeholder="Enter priority (Low/Medium/High)">
+```
+**Fix**: Use dropdown or radio buttons
+
+### ❌ MISTAKE 2: Dropdown for Yes/No
+```blade
+<!-- BAD -->
+<select name="is_active">
+    <option value="1">Yes</option>
+    <option value="0">No</option>
+</select>
+```
+**Fix**: Use toggle switch or radio buttons
+
+### ❌ MISTAKE 3: Free Text for Dates
+```blade
+<!-- BAD -->
+<input type="text" name="appointment_date" placeholder="DD/MM/YYYY">
+```
+**Fix**: Use `type="date"` input
+
+### ❌ MISTAKE 4: No "Other" Option
+```blade
+<!-- BAD - Rigid list with no flexibility -->
+<select name="contact_relationship">
+    <option>Mother</option>
+    <option>Father</option>
+    <option>Guardian</option>
+</select>
+<!-- What if it's Grandmother, Aunt, Foster Parent? -->
+```
+**Fix**: Add "Other (Please Specify)" option with conditional text field
+
+### ❌ MISTAKE 5: Unlabeled Form Controls
+```blade
+<!-- BAD -->
+<select name="gender">
+    <option>Male</option>
+    <option>Female</option>
+</select>
+```
+**Fix**: Always include `<label>` element
+
+---
+
+## Summary
+
+**Golden Rules:**
+1. **If options are known and limited (< 50)**: Use dropdown/select
+2. **If options are known and visible (2-5)**: Use radio buttons
+3. **If multiple selections allowed**: Use checkboxes
+4. **If yes/no or on/off**: Use toggle switch
+5. **If date or time**: Use native date/time picker
+6. **If large list (50+)**: Use searchable select (Select2)
+7. **If truly unlimited possibilities**: Then use text input
+
+**Benefits:**
+- ✅ Consistent data quality
+- ✅ Faster user input
+- ✅ Better mobile experience
+- ✅ Easier to search and filter
+- ✅ Reduced user errors
+- ✅ Better accessibility
+- ✅ Professional appearance
+
+**Remember**: Every text input field you replace with a selection control improves data quality and user experience. When in doubt, ask yourself: "Can this be a dropdown instead?"
+
+---
+
+## Related Rules
+- **[configurable-dropdowns-lists.mdc](./configurable-dropdowns-lists.mdc)** - Make dropdown options configurable
+- **[responsive-table-pattern.mdc](./responsive-table-pattern.mdc)** - Form controls in table filters
+- **[blade-template-syntax.mdc](./blade-template-syntax.mdc)** - Validate form templates
+- **[access-control-overview.mdc](./access-control-overview.mdc)** - Permission checks on forms
+
+---
+
+## Change Log
+
+### 2025-10-19
+- Added "When to Use" section
+- Added cross-references to related rules
+- Improved frontmatter with priority
+- Enhanced navigation
+
+### 2025-10-18
+- Initial creation
+- Documented form control patterns
+- Added mobile-friendly considerations

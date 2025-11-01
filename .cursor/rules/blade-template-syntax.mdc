@@ -1,0 +1,332 @@
+---
+description: Blade template syntax validation to prevent unclosed conditionals and loops
+globs: resources/views/**/*.blade.php
+alwaysApply: true
+priority: critical
+lastUpdated: 2025-10-19
+relatedRules:
+  - responsive-table-pattern.mdc
+  - user-friendly-ui-patterns.mdc
+  - project-rules.mdc
+---
+
+# Blade Template Syntax Validation
+
+## ⚡ When to Use This Rule
+
+**Use this rule when:**
+- Modifying ANY Blade template file
+- Before committing Blade file changes
+- Debugging blank pages or partial renders
+- Adding conditional sections or loops
+
+**Run validation before:**
+- Every commit touching `.blade.php` files
+- After adding/removing `@if`, `@foreach`, etc.
+- When page renders blank despite no errors
+
+---
+
+**CRITICAL**: Always validate Blade template syntax before committing changes to prevent rendering failures and blank pages.
+
+## Mandatory Pre-Commit Checks
+
+### 1. Matching Conditionals
+
+**Every opening directive MUST have a matching closing directive:**
+
+| Opening | Closing | Required |
+|---------|---------|----------|
+| `@if` | `@endif` | ✅ YES |
+| `@foreach` | `@endforeach` | ✅ YES |
+| `@for` | `@endfor` | ✅ YES |
+| `@while` | `@endwhile` | ✅ YES |
+| `@unless` | `@endunless` | ✅ YES |
+| `@forelse` | `@endforelse` | ✅ YES |
+| `@switch` | `@endswitch` | ✅ YES |
+| `@php` | `@endphp` | ✅ YES |
+| `@section` | `@endsection` | ✅ YES |
+
+### 2. Before Modifying Any Blade File
+
+**ALWAYS run this mental checklist:**
+
+1. ✅ **Count opening directives** - Use search: `@if|@foreach|@for|@while|@unless|@forelse|@switch`
+2. ✅ **Count closing directives** - Use search: `@endif|@endforeach|@endfor|@endwhile|@endunless|@endforelse|@endswitch`
+3. ✅ **Verify counts match** - Each opening should have exactly one closing
+4. ✅ **Check nesting order** - Inner blocks must close before outer blocks
+5. ✅ **Test the page** - Always load the page in browser before committing
+
+### 3. Common Mistakes to Avoid
+
+#### ❌ BAD: Missing @endif
+```blade
+@if(can('some-permission'))
+<li class="nav-item">
+    <button>Some Tab</button>
+</li>
+<li class="nav-item">  <!-- This tab is now inside the @if! -->
+    <button>Another Tab</button>
+</li>
+<!-- MISSING @endif HERE! -->
+</ul>
+
+<div class="content">
+    <!-- Everything after this won't render if permission check fails! -->
+</div>
+```
+
+#### ✅ GOOD: Properly closed @endif
+```blade
+@if(can('some-permission'))
+<li class="nav-item">
+    <button>Some Tab</button>
+</li>
+@endif  <!-- ✅ Properly closed -->
+
+<li class="nav-item">  <!-- This tab is outside the conditional -->
+    <button>Another Tab</button>
+</li>
+</ul>
+
+<div class="content">
+    <!-- This will always render -->
+</div>
+```
+
+#### ❌ BAD: Wrong nesting order
+```blade
+@if($condition1)
+    @foreach($items as $item)
+        <p>{{ $item }}</p>
+@endif  <!-- ❌ WRONG: Closes @if before @foreach -->
+    @endforeach
+```
+
+#### ✅ GOOD: Correct nesting order
+```blade
+@if($condition1)
+    @foreach($items as $item)
+        <p>{{ $item }}</p>
+    @endforeach  <!-- ✅ Inner block closes first -->
+@endif  <!-- ✅ Outer block closes last -->
+```
+
+### 4. Validation Commands
+
+**Before committing, run these checks:**
+
+```bash
+# Count all @if directives
+grep -o "@if" resources/views/path/to/file.blade.php | wc -l
+
+# Count all @endif directives
+grep -o "@endif" resources/views/path/to/file.blade.php | wc -l
+
+# The counts should match!
+```
+
+**Or use this one-liner to check all Blade files:**
+```bash
+for file in $(find resources/views -name "*.blade.php"); do
+    if_count=$(grep -o "@if" "$file" | wc -l | xargs)
+    endif_count=$(grep -o "@endif" "$file" | xc -l | xargs)
+    if [ "$if_count" != "$endif_count" ]; then
+        echo "❌ MISMATCH in $file: @if=$if_count @endif=$endif_count"
+    fi
+done
+```
+
+### 5. IDE Visual Aids
+
+**Use your IDE's bracket matching:**
+- Most IDEs highlight matching brackets/blocks
+- Place cursor on `@if` → it should highlight the matching `@endif`
+- If no highlight appears → missing closing directive!
+
+### 6. Symptoms of Unclosed Directives
+
+**If you see these symptoms, check for missing closings:**
+
+- ✋ **Blank page** despite no PHP errors
+- ✋ **Content disappears** after certain conditions
+- ✋ **Tabs/sections not rendering** but button shows
+- ✋ **JavaScript reports** elements don't exist in DOM
+- ✋ **Partial page rendering** stops at a certain point
+
+### 7. Real-World Example (Bug We Fixed)
+
+**The Bug:**
+```blade
+@if(canAny(['off-sports-view', 'admitted-view']))
+<li class="nav-item">
+    <button>Status Flags</button>
+</li>
+<!-- MISSING @endif -->
+<li class="nav-item">
+    <button>Audit Trail</button>
+</li>
+</ul>
+
+<div class="tab-content">
+    <!-- ALL OF THIS CONTENT WAS SKIPPED! -->
+</div>
+```
+
+**The Fix:**
+```blade
+@if(canAny(['off-sports-view', 'admitted-view']))
+<li class="nav-item">
+    <button>Status Flags</button>
+</li>
+@endif  <!-- ✅ ADDED THIS -->
+
+<li class="nav-item">
+    <button>Audit Trail</button>
+</li>
+</ul>
+
+<div class="tab-content">
+    <!-- Now this renders correctly -->
+</div>
+```
+
+### 8. Pre-Commit Checklist
+
+Before committing ANY Blade file changes:
+
+- [ ] Searched for all `@if` directives
+- [ ] Verified each `@if` has matching `@endif`
+- [ ] Checked nesting order is correct
+- [ ] Verified no orphaned `@endif` without matching `@if`
+- [ ] Tested page in browser with different permission levels
+- [ ] Checked browser console for JavaScript errors
+- [ ] Verified all expected content renders
+
+### 9. Automated Testing
+
+**Add this to your test suite:**
+
+```php
+/** @test */
+public function blade_files_have_matching_directives()
+{
+    $bladeFiles = File::allFiles(resource_path('views'));
+    
+    foreach ($bladeFiles as $file) {
+        $content = file_get_contents($file->getPathname());
+        
+        // Check @if/@endif
+        $ifCount = substr_count($content, '@if');
+        $endifCount = substr_count($content, '@endif');
+        
+        $this->assertEquals(
+            $ifCount, 
+            $endifCount, 
+            "Mismatch in {$file->getFilename()}: @if={$ifCount}, @endif={$endifCount}"
+        );
+        
+        // Check @foreach/@endforeach
+        $foreachCount = substr_count($content, '@foreach');
+        $endforeachCount = substr_count($content, '@endforeach');
+        
+        $this->assertEquals(
+            $foreachCount,
+            $endforeachCount,
+            "Mismatch in {$file->getFilename()}: @foreach={$foreachCount}, @endforeach={$endforeachCount}"
+        );
+    }
+}
+```
+
+## Remember
+
+**One missing `@endif` can break an entire page!**
+
+Always double-check your conditionals before committing. It's easier to prevent than to debug later.
+
+---
+
+## Automated Validation Script
+
+Save this as `scripts/validate-blade.sh`:
+
+```bash
+#!/bin/bash
+echo "🔍 Validating Blade templates..."
+
+errors=0
+
+for file in $(find resources/views -name "*.blade.php"); do
+    filename=$(basename "$file")
+    
+    # Check @if/@endif
+    if_count=$(grep -o "@if\|@elseif" "$file" | wc -l | xargs)
+    endif_count=$(grep -o "@endif" "$file" | wc -l | xargs)
+    
+    if [ "$if_count" -ne "$endif_count" ]; then
+        echo "❌ $filename: @if=$if_count @endif=$endif_count"
+        errors=$((errors + 1))
+    fi
+    
+    # Check @foreach/@endforeach
+    foreach_count=$(grep -o "@foreach\|@forelse" "$file" | wc -l | xargs)
+    endforeach_count=$(grep -o "@endforeach\|@endforelse" "$file" | wc -l | xargs)
+    
+    if [ "$foreach_count" -ne "$endforeach_count" ]; then
+        echo "❌ $filename: @foreach=$foreach_count @endforeach=$endforeach_count"
+        errors=$((errors + 1))
+    fi
+    
+    # Check @section/@endsection
+    section_count=$(grep -o "@section" "$file" | wc -l | xargs)
+    endsection_count=$(grep -o "@endsection\|@stop" "$file" | wc -l | xargs)
+    
+    if [ "$section_count" -ne "$endsection_count" ]; then
+        echo "⚠️  $filename: @section=$section_count @endsection=$endsection_count"
+    fi
+done
+
+if [ $errors -eq 0 ]; then
+    echo "✅ All Blade templates validated successfully"
+    exit 0
+else
+    echo "❌ Found $errors file(s) with validation errors"
+    exit 1
+fi
+```
+
+**Make executable and run:**
+```bash
+chmod +x scripts/validate-blade.sh
+./scripts/validate-blade.sh
+```
+
+**Add to your git pre-commit hook** (optional):
+```bash
+# .git/hooks/pre-commit
+#!/bin/bash
+./scripts/validate-blade.sh
+if [ $? -ne 0 ]; then
+    echo "❌ Blade validation failed. Fix errors before committing."
+    exit 1
+fi
+```
+
+---
+
+## Related Rules
+- **[responsive-table-pattern.mdc](./responsive-table-pattern.mdc)** - Table Blade patterns
+- **[user-friendly-ui-patterns.mdc](./user-friendly-ui-patterns.mdc)** - Form Blade patterns
+- **[project-rules.mdc](./project-rules.mdc)** - Version control and testing
+
+---
+
+## Change Log
+
+### 2025-10-19
+- Added automated validation script
+- Added "When to Use" section
+- Added cross-references to related rules
+- Improved frontmatter with priority
+- Added git pre-commit hook example

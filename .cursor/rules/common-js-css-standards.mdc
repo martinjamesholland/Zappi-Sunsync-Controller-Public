@@ -1,0 +1,504 @@
+---
+description: Standards for common JS and CSS file usage across the application
+globs: "**/*.php,**/*.blade.php,**/*.js,**/*.css"
+alwaysApply: true
+priority: medium
+lastUpdated: 2025-10-19
+relatedRules:
+  - project-rules.mdc
+  - responsive-table-pattern.mdc
+  - user-friendly-ui-patterns.mdc
+---
+
+# Common JS and CSS Standards
+
+## ⚡ When to Use This Rule
+
+**Use this rule when:**
+- Creating any new page or view
+- Adding JavaScript functionality
+- Styling new components
+- Deciding between global vs page-specific code
+
+---
+
+## Global Files
+Always include these global files in your pages:
+
+### CSS Files
+- `public/css/admin-global.css` - Contains core styling for admin areas
+
+### JavaScript Files
+- `public/js/admin-global.js` - Contains core functionality for admin areas
+
+## Implementation Guidelines
+
+### Page Template Structure
+Always structure your page templates as follows:
+
+```blade
+<!-- In your blade layout file -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Meta tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title') - MRS Admin</title>
+    
+    <!-- Global CSS (Always include these) -->
+    <link rel="stylesheet" href="{{ asset('css/admin-global.css') }}">
+    
+    <!-- Page-specific CSS (Minimize these) -->
+    @yield('page_css')
+</head>
+<body class="admin-layout">
+    <!-- Page content -->
+    @yield('content')
+    
+    <!-- Global JavaScript (Always include these) -->
+    <script src="{{ asset('js/admin-global.js') }}"></script>
+    
+    <!-- Page-specific JavaScript (Minimize these) -->
+    @yield('page_js')
+</body>
+</html>
+```
+### Minimizing Local CSS/JS
+1. **Avoid Inline CSS/JS**: Never write inline styles or scripts
+2. **Consolidate Common Patterns**: If you find yourself repeating styles or scripts across multiple pages, add them to the global files
+3. **Use Global Utility Classes**: Check admin-global.css for existing utility classes before creating new ones
+4. **Component-Based Approach**: Build reusable components rather than page-specific styles
+
+### When to Add to Global Files
+Add styles/scripts to global files when:
+- The functionality is used across multiple pages
+- It's part of a core UI component (tables, forms, cards, etc.)
+- It's needed for consistent behavior throughout the admin area
+
+### When to Use Page-Specific CSS/JS
+Only use page-specific files when:
+- The functionality is truly unique to a single page
+- The code would bloat the global files unnecessarily
+- It's for a specialized feature not used elsewhere
+
+## Best Practices
+
+1. **Keep Global Files Organized**: Maintain clear section comments in global files
+2. **Document New Additions**: When adding new styles/scripts to global files, include clear comments
+3. **Follow Naming Conventions**: Use consistent naming patterns for classes and functions
+4. **Prioritize Performance**: Minimize DOM manipulations and optimize CSS selectors
+5. **Mobile-First Approach**: Ensure all components work well on all device sizes
+
+## File Organization
+
+The common files are located at:
+```
+public/
+├── css/
+│   └── admin-global.css
+└── js/
+    └── admin-global.js
+```
+
+---
+
+## Related Rules
+- **[project-rules.mdc](./project-rules.mdc)** - Development workflow and testing
+- **[responsive-table-pattern.mdc](./responsive-table-pattern.mdc)** - CSS classes for tables
+- **[user-friendly-ui-patterns.mdc](./user-friendly-ui-patterns.mdc)** - Form styling patterns
+- **[blade-template-syntax.mdc](./blade-template-syntax.mdc)** - Template validation
+
+---
+
+## JavaScript Function Naming & Conflict Prevention
+
+### ⚠️ CRITICAL: Avoid Function Name Conflicts
+
+**THE PROBLEM**: When multiple functions share the same name in the same scope, the last definition overwrites all previous ones, causing unexpected behavior and bugs.
+
+```javascript
+// ❌ BAD - Duplicate function names
+function showIconPicker() {
+    // For Attendance Types
+    console.log('Attendance Type Icon Picker');
+}
+
+function showIconPicker() {
+    // For Medication Routes
+    console.log('Medication Route Icon Picker');
+}
+
+// When called, ONLY the second function executes!
+// The first function is completely overwritten and lost.
+```
+
+### Naming Convention Rules
+
+#### Rule 1: Use Context-Specific Prefixes
+
+**ALWAYS prefix function names with their context/module name:**
+
+```javascript
+// ✅ GOOD - Context-specific names
+function showAttendanceTypeIconPicker() {
+    // Attendance Type specific
+}
+
+function showMedicationRouteIconPicker() {
+    // Medication Route specific
+}
+
+function showDocumentCategoryIconPicker() {
+    // Document Category specific
+}
+```
+
+#### Rule 2: Use Namespacing for Related Functions
+
+**Group related functions under a namespace object:**
+
+```javascript
+// ✅ GOOD - Namespaced functions
+const AttendanceTypeManager = {
+    showIconPicker: function() {
+        // Attendance Type icon picker
+    },
+    
+    saveItem: function() {
+        // Save attendance type
+    },
+    
+    deleteItem: function() {
+        // Delete attendance type
+    }
+};
+
+const MedicationRouteManager = {
+    showIconPicker: function() {
+        // Medication Route icon picker
+    },
+    
+    saveItem: function() {
+        // Save medication route
+    }
+};
+
+// Usage:
+AttendanceTypeManager.showIconPicker();
+MedicationRouteManager.showIconPicker();
+```
+
+#### Rule 3: Use IIFE for Page-Specific Code
+
+**Wrap page-specific JavaScript in Immediately Invoked Function Expressions:**
+
+```javascript
+// ✅ GOOD - IIFE pattern prevents global scope pollution
+(function() {
+    'use strict';
+    
+    // These functions are scoped to this IIFE
+    function showIconPicker() {
+        // Only accessible within this IIFE
+    }
+    
+    function loadItems() {
+        // Only accessible within this IIFE
+    }
+    
+    // Initialize when DOM is ready
+    $(document).ready(function() {
+        loadItems();
+    });
+})();
+```
+
+#### Rule 4: Use Descriptive, Unique Names
+
+**Function names should clearly indicate:**
+1. **What** they do
+2. **Where** they're used (context)
+3. **When** they're called (if timing-specific)
+
+```javascript
+// ❌ BAD - Generic, collision-prone names
+function showModal() { }
+function save() { }
+function load() { }
+function update() { }
+
+// ✅ GOOD - Specific, collision-resistant names
+function showAttendanceTypeModal() { }
+function saveAttendanceType() { }
+function loadAttendanceTypesList() { }
+function updateAttendanceTypeOrder() { }
+```
+
+### Common Function Name Patterns
+
+Use these patterns for consistency:
+
+| Action | Pattern | Example |
+|--------|---------|---------|
+| Show UI | `show{Context}{Element}` | `showAttendanceTypeModal` |
+| Hide UI | `hide{Context}{Element}` | `hideAttendanceTypeModal` |
+| Load Data | `load{Context}Data` or `load{Context}List` | `loadAttendanceTypesData` |
+| Save Data | `save{Context}` or `create{Context}` | `saveAttendanceType` |
+| Update Data | `update{Context}` or `edit{Context}` | `updateAttendanceType` |
+| Delete Data | `delete{Context}` or `remove{Context}` | `deleteAttendanceType` |
+| Validate | `validate{Context}{Field}` | `validateAttendanceTypeName` |
+| Render | `render{Context}{Element}` | `renderAttendanceTypesList` |
+| Toggle | `toggle{Context}{State}` | `toggleAttendanceTypeActive` |
+| Initialize | `init{Context}` | `initAttendanceTypeForm` |
+
+### Icon Picker Pattern (Specific to MEDRSv4)
+
+**Since icon pickers are used in multiple settings sections, ALWAYS use context-specific names:**
+
+```javascript
+// ❌ BAD - Generic name (will conflict)
+function showIconPicker(inputId) {
+    // Which icon picker? For what?
+}
+
+// ✅ GOOD - Context-specific names
+function showAttendanceTypeIconPicker(inputId) {
+    const iconModal = new bootstrap.Modal(document.getElementById('attendanceTypeIconModal'));
+    iconModal.show();
+    // Store which input triggered this
+    window.currentAttendanceTypeIconInput = inputId;
+}
+
+function showMedicationRouteIconPicker(inputId) {
+    const iconModal = new bootstrap.Modal(document.getElementById('medicationRouteIconModal'));
+    iconModal.show();
+    // Store which input triggered this
+    window.currentMedicationRouteIconInput = inputId;
+}
+
+function showDocumentCategoryIconPicker(inputId) {
+    const iconModal = new bootstrap.Modal(document.getElementById('documentCategoryIconModal'));
+    iconModal.show();
+    // Store which input triggered this
+    window.currentDocumentCategoryIconInput = inputId;
+}
+```
+
+### Page-Specific vs Global Functions
+
+#### Page-Specific Functions
+
+**In `@section('page_js')` blocks:**
+
+```blade
+@section('page_js')
+<script>
+(function() {
+    'use strict';
+    
+    // ✅ GOOD - Page-specific, scoped functions
+    function loadAttendanceTypes() {
+        $.ajax({
+            url: '{{ route("admin.attendance-types.index") }}',
+            success: function(response) {
+                renderAttendanceTypesList(response.types);
+            }
+        });
+    }
+    
+    function renderAttendanceTypesList(types) {
+        // Render logic
+    }
+    
+    function showAttendanceTypeIconPicker(inputId) {
+        // Show icon picker
+    }
+    
+    // Initialize on page load
+    $(document).ready(function() {
+        loadAttendanceTypes();
+    });
+})();
+</script>
+@endsection
+```
+
+#### Global Functions (admin-global.js)
+
+**Only add to global file if used on MULTIPLE pages:**
+
+```javascript
+// ✅ GOOD - Truly global utility functions
+window.MedrsUtils = {
+    /**
+     * Show toast notification
+     */
+    showToast: function(message, type = 'success') {
+        // Toast logic
+    },
+    
+    /**
+     * Format date to UK format
+     */
+    formatDateUK: function(date) {
+        // Date formatting
+    },
+    
+    /**
+     * Confirm action with modal
+     */
+    confirmAction: function(message, callback) {
+        // Confirmation logic
+    }
+};
+```
+
+### Debugging Function Name Conflicts
+
+**How to detect conflicts:**
+
+```javascript
+// Add this to your browser console to check for duplicate functions
+const functionNames = {};
+
+Object.getOwnPropertyNames(window).forEach(name => {
+    if (typeof window[name] === 'function') {
+        if (functionNames[name]) {
+            console.warn(`⚠️ DUPLICATE FUNCTION: ${name} (defined multiple times)`);
+        }
+        functionNames[name] = true;
+    }
+});
+```
+
+### Pre-Deployment Checklist
+
+Before committing JavaScript code:
+
+- [ ] All function names are unique and context-specific
+- [ ] No generic names like `showModal()`, `save()`, `load()`
+- [ ] Icon picker functions have context prefix (e.g., `showAttendanceTypeIconPicker`)
+- [ ] Page-specific code is wrapped in IIFE or namespaced
+- [ ] Browser console shows no "function is not defined" errors
+- [ ] No warnings about duplicate function definitions
+- [ ] All functions are documented with clear comments
+- [ ] Function names match the pattern table above
+
+### Real-World Example (Settings Page)
+
+**The settings page has multiple sections that all need similar functionality. Here's how to avoid conflicts:**
+
+```javascript
+@section('page_js')
+<script>
+(function() {
+    'use strict';
+    
+    // ============================================
+    // ATTENDANCE TYPES SECTION
+    // ============================================
+    function loadAttendanceTypes() { /* ... */ }
+    function showAttendanceTypeModal(id = null) { /* ... */ }
+    function showAttendanceTypeIconPicker(inputId) { /* ... */ }
+    function saveAttendanceType() { /* ... */ }
+    function deleteAttendanceType(id) { /* ... */ }
+    
+    // ============================================
+    // MEDICATION ROUTES SECTION
+    // ============================================
+    function loadMedicationRoutes() { /* ... */ }
+    function showMedicationRouteModal(id = null) { /* ... */ }
+    function showMedicationRouteIconPicker(inputId) { /* ... */ }
+    function saveMedicationRoute() { /* ... */ }
+    function deleteMedicationRoute(id) { /* ... */ }
+    
+    // ============================================
+    // DOCUMENT CATEGORIES SECTION
+    // ============================================
+    function loadDocumentCategories() { /* ... */ }
+    function showDocumentCategoryModal(id = null) { /* ... */ }
+    function showDocumentCategoryIconPicker(inputId) { /* ... */ }
+    function saveDocumentCategory() { /* ... */ }
+    function deleteDocumentCategory(id) { /* ... */ }
+    
+    // Initialize all sections
+    $(document).ready(function() {
+        loadAttendanceTypes();
+        loadMedicationRoutes();
+        loadDocumentCategories();
+    });
+})();
+</script>
+@endsection
+```
+
+### Summary
+
+**Golden Rules:**
+1. ✅ **NEVER** use generic function names in global scope
+2. ✅ **ALWAYS** prefix with context (e.g., `AttendanceType`, `MedicationRoute`)
+3. ✅ **USE** namespacing for related functions
+4. ✅ **WRAP** page-specific code in IIFE
+5. ✅ **TEST** for duplicate function names before deploying
+6. ✅ **DOCUMENT** function purpose with comments
+
+**Remember**: When you see `showIconPicker()` used in multiple places, it MUST become `show{Context}IconPicker()`.
+
+---
+
+## Change Log
+
+### 2025-10-19
+- **CRITICAL UPDATE**: Added comprehensive JavaScript naming conventions section
+- Added function conflict prevention guidelines
+- Added icon picker naming pattern
+- Added namespacing and IIFE patterns
+- Added debugging and testing checklist
+- Consolidated testing section with reference to project-rules.mdc
+- Added "When to Use" section
+- Added cross-references to related rules
+- Improved frontmatter with priority and related rules
+- Added quick checks specific to frontend work
+
+## Testing Frontend Changes
+
+**IMPORTANT**: Follow the comprehensive testing checklist in [project-rules.mdc](./project-rules.mdc#testing-requirements---mandatory).
+
+### Frontend-Specific Quick Checks
+
+**Visual Testing:**
+- [ ] Test at 320px, 768px, 1440px widths
+- [ ] No horizontal scroll at any width
+- [ ] All text readable (size, contrast, color)
+- [ ] No layout breaks or overlapping elements
+
+**Functionality Testing:**
+- [ ] Browser console shows no errors
+- [ ] All interactive elements work (hover, click, focus)
+- [ ] AJAX calls complete successfully
+- [ ] Form validations work correctly
+
+**Before Modifying Global Files** (admin-global.css/js):
+
+⚠️ **CRITICAL**: Global file changes affect ALL pages!
+
+1. **Impact Check**:
+   - Will this change affect other pages?
+   - Have I tested on pages using this file?
+   - Can this be page-specific instead?
+
+2. **Testing Requirements**:
+   - Test on 3-5 different pages minimum
+   - Search for hardcoded class/function references
+   - Document the change with clear comments
+   - Check for specificity conflicts
+
+3. **Browser Debugging**:
+   - Clear cache before testing
+   - Check console for errors/warnings
+   - Verify file paths are correct
+   - Use dev tools to inspect elements
+   - Test document.ready timing
+
+**See also**: [project-rules.mdc](./project-rules.mdc#testing-requirements---mandatory) for complete testing checklist

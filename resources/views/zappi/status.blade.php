@@ -133,7 +133,7 @@
                                                   stroke-width="3" 
                                                   fill="none" 
                                                   class="path-line"
-                                                  d="{{ $gridPower < 0 ? 'M 300 150 L 400 150 L 400 50 L 520 50' : 'M 560 70 L 450 70 L 450 150 L 370 150' }}">
+                                                  d="{{ $gridPower < 0 ? 'M 370 150 L 450 150 L 450 50 L 570 50' : 'M 560 70 L 450 70 L 450 150 L 370 150' }}">
                                                 <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1s" repeatCount="indefinite" />
                                             </path>
                                             @if($gridPower != 0)

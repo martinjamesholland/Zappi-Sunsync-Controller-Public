@@ -1,0 +1,1521 @@
+---
+description: Comprehensive UI/UX design principles and best practices for MEDRSv4 development
+priority: high
+alwaysApply: true
+lastUpdated: 2025-10-19
+relatedRules:
+  - user-friendly-ui-patterns.mdc
+  - responsive-table-pattern.mdc
+  - common-js-css-standards.mdc
+  - blade-template-syntax.mdc
+---
+
+# UI/UX Design Principles
+
+## ⚡ When to Use This Rule
+
+**Use this rule when:**
+- Designing ANY new interface or page
+- Making visual design decisions
+- Implementing interactive elements
+- Optimizing for accessibility
+- Improving user experience
+- Creating mobile-responsive layouts
+
+**This rule applies to:**
+- All frontend development
+- Visual design choices
+- Interaction patterns
+- Accessibility implementation
+- Performance optimization
+
+---
+
+## Overview
+
+You are building MEDRSv4 with expert UI and UX design principles. This rule provides comprehensive guidance for creating intuitive, accessible, and performant user interfaces.
+
+---
+
+## Visual Design
+
+### Clear Visual Hierarchy
+
+**Guide user attention with intentional design choices:**
+
+```css
+/* Example: Card hierarchy */
+.card-custom {
+    /* Primary content - highest emphasis */
+    .card-custom-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    /* Secondary content - medium emphasis */
+    .card-custom-subtitle {
+        font-size: 1rem;
+        font-weight: 400;
+        color: var(--text-secondary);
+    }
+    
+    /* Tertiary content - lowest emphasis */
+    .card-custom-meta {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+}
+```
+
+**Visual Weight Priority:**
+1. Primary actions (Save, Submit) - high contrast, prominent
+2. Secondary actions (Cancel, Back) - lower contrast, less prominent
+3. Tertiary actions (Help, Info) - minimal, subtle
+
+### Cohesive Color Palette
+
+**MEDRSv4 Color System:**
+
+```css
+:root {
+    /* Primary Colors */
+    --primary: #2563eb;        /* Actions, links */
+    --primary-hover: #1d4ed8;  /* Hover states */
+    --primary-light: #dbeafe;  /* Backgrounds */
+    
+    /* Semantic Colors */
+    --success: #16a34a;        /* Success states */
+    --warning: #ea580c;        /* Warning states */
+    --danger: #dc2626;         /* Error/danger states */
+    --info: #0891b2;           /* Informational */
+    
+    /* Neutral Colors */
+    --text-primary: #1f2937;   /* Primary text */
+    --text-secondary: #4b5563; /* Secondary text */
+    --text-muted: #9ca3af;     /* Muted/disabled text */
+    --border: #e5e7eb;         /* Borders */
+    --background: #f9fafb;     /* Page backgrounds */
+}
+```
+
+**Usage Guidelines:**
+- Use primary color for main actions and navigation
+- Reserve semantic colors for their specific purposes
+- Maintain consistent color usage across the application
+- Test color combinations for accessibility
+
+### Typography
+
+**Effective typography enhances readability:**
+
+```css
+/* Typography Scale */
+:root {
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    
+    /* Font Sizes (rem units) */
+    --text-xs: 0.75rem;    /* 12px - Small labels */
+    --text-sm: 0.875rem;   /* 14px - Secondary text */
+    --text-base: 1rem;     /* 16px - Body text */
+    --text-lg: 1.125rem;   /* 18px - Emphasized text */
+    --text-xl: 1.25rem;    /* 20px - Headings */
+    --text-2xl: 1.5rem;    /* 24px - Page titles */
+    --text-3xl: 1.875rem;  /* 30px - Hero text */
+    
+    /* Line Heights */
+    --leading-tight: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.75;
+}
+
+/* Body text */
+body {
+    font-family: var(--font-family);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    color: var(--text-primary);
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: var(--leading-tight);
+    margin-bottom: 0.5em;
+}
+
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+```
+
+**Typography Best Practices:**
+- Use relative units (rem, em) for scalability
+- Maintain consistent font hierarchy
+- Ensure minimum 16px body text for readability
+- Use font weights to create emphasis
+- Limit font families to 1-2 maximum
+
+### Contrast and Legibility
+
+**WCAG 2.1 AA Standard Requirements:**
+
+```css
+/* Minimum contrast ratios */
+/* Normal text: 4.5:1 */
+/* Large text (18pt+): 3:1 */
+/* UI components: 3:1 */
+
+/* ✅ GOOD - Sufficient contrast */
+.text-on-light {
+    color: #1f2937; /* Dark gray on white = 16:1 ratio */
+    background: #ffffff;
+}
+
+.button-primary {
+    color: #ffffff;
+    background: #2563eb; /* White on blue = 8.6:1 ratio */
+}
+
+/* ❌ BAD - Insufficient contrast */
+.low-contrast-text {
+    color: #d1d5db; /* Light gray on white = 1.8:1 ratio - FAILS */
+    background: #ffffff;
+}
+```
+
+**Contrast Checklist:**
+- [ ] All text meets minimum 4.5:1 contrast ratio
+- [ ] Interactive elements meet 3:1 contrast ratio
+- [ ] Focus indicators have 3:1 contrast
+- [ ] Test with color blindness simulators
+- [ ] Verify in both light and dark modes (if applicable)
+
+**Tools:**
+- WebAIM Contrast Checker: https://webaim.org/resources/contrastchecker/
+- Chrome DevTools: Accessibility audit
+- Browser extensions: WAVE, axe DevTools
+
+### Consistent Style
+
+**Maintain consistency across the application:**
+
+```blade
+{{-- ✅ GOOD - Consistent card pattern --}}
+<div class="card-custom">
+    <div class="card-custom-header">
+        <h5 class="card-custom-title">Card Title</h5>
+    </div>
+    <div class="card-custom-body">
+        <p>Card content goes here</p>
+    </div>
+    <div class="card-custom-footer">
+        <button class="btn btn-primary">Action</button>
+    </div>
+</div>
+
+{{-- ❌ BAD - Inconsistent custom styling --}}
+<div style="border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+    <h3 style="font-size: 18px; color: #333;">Title</h3>
+    <div>Content</div>
+    <button style="background: blue; color: white;">Action</button>
+</div>
+```
+
+**Consistency Rules:**
+- Use established CSS classes from `admin-global.css`
+- Follow component patterns from existing pages
+- Reuse UI components rather than creating new ones
+- Document new patterns when they're necessary
+
+---
+
+## Interaction Design
+
+### Intuitive Navigation Patterns
+
+**MEDRSv4 Navigation Structure:**
+
+```blade
+{{-- Top-level navigation --}}
+<nav class="main-nav">
+    <ul>
+        <li><a href="{{ route('dashboard') }}" class="nav-link">Dashboard</a></li>
+        <li><a href="{{ route('patients.index') }}" class="nav-link">Patients</a></li>
+        <li><a href="{{ route('appointments.index') }}" class="nav-link">Appointments</a></li>
+        @can('view_attendance')
+            <li><a href="{{ route('attendances.index') }}" class="nav-link">Attendance</a></li>
+        @endcan
+    </ul>
+</nav>
+
+{{-- Breadcrumb navigation --}}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{{ route('patients.index') }}">Patients</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ $patient->full_name }}</li>
+    </ol>
+</nav>
+```
+
+**Navigation Best Practices:**
+- Keep navigation consistent across all pages
+- Highlight current page/section
+- Use breadcrumbs for deep hierarchies
+- Implement back buttons where appropriate
+- Ensure navigation works with keyboard
+
+### Familiar UI Components
+
+**Reduce cognitive load by using standard patterns:**
+
+```blade
+{{-- ✅ GOOD - Standard Bootstrap components --}}
+<button class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> Add Patient
+</button>
+
+<div class="alert alert-success" role="alert">
+    <i class="bi bi-check-circle"></i> Patient saved successfully!
+</div>
+
+{{-- ❌ BAD - Custom unfamiliar patterns --}}
+<div class="custom-action-trigger" onclick="doSomething()">
+    Click here to add
+</div>
+```
+
+**Component Library:**
+- Buttons: `.btn`, `.btn-primary`, `.btn-secondary`, etc.
+- Alerts: `.alert`, `.alert-success`, `.alert-danger`, etc.
+- Cards: `.card-custom`, `.card-custom-header`, etc.
+- Forms: `.form-control`, `.form-select`, `.form-check`, etc.
+- Tables: `.table-custom`
+- Badges: `.badge-custom`, `.badge-success`, etc.
+
+### Clear Calls-to-Action
+
+**Guide user behavior with obvious actions:**
+
+```blade
+{{-- Primary action - most prominent --}}
+<button class="btn btn-primary btn-lg">
+    <i class="bi bi-save"></i> Save Patient Record
+</button>
+
+{{-- Secondary action - less prominent --}}
+<button class="btn btn-outline-secondary" onclick="window.history.back()">
+    <i class="bi bi-arrow-left"></i> Cancel
+</button>
+
+{{-- Destructive action - clear warning --}}
+<button class="btn btn-danger" onclick="confirmDelete()">
+    <i class="bi bi-trash"></i> Delete Patient
+</button>
+```
+
+**CTA Guidelines:**
+- One primary action per section
+- Use action-oriented language ("Save", "Add", "Send")
+- Make destructive actions require confirmation
+- Position primary actions consistently (usually right-aligned)
+- Use icons to reinforce meaning
+
+### Responsive Design
+
+**Cross-device compatibility is mandatory:**
+
+```css
+/* Mobile-first approach */
+.container {
+    width: 100%;
+    padding: 1rem;
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+    .container {
+        padding: 1.5rem;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+}
+
+/* Large desktop */
+@media (min-width: 1440px) {
+    .container {
+        max-width: 1400px;
+    }
+}
+```
+
+**Responsive Requirements:**
+- Test at 320px (mobile), 768px (tablet), 1440px (desktop)
+- No horizontal scrolling at any width
+- Touch targets minimum 44x44 pixels
+- Readable text without zooming
+- See [responsive-table-pattern.mdc](./responsive-table-pattern.mdc) for tables
+
+### Purposeful Animations
+
+**Enhance UX without distraction:**
+
+```css
+/* ✅ GOOD - Subtle, purposeful animations */
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.alert {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ❌ BAD - Excessive, distracting animations */
+.everything {
+    animation: spin 2s infinite, bounce 1s infinite, pulse 1.5s infinite;
+}
+```
+
+**Animation Guidelines:**
+- Keep duration short (200-400ms for most interactions)
+- Use `ease-in-out` for natural motion
+- Respect `prefers-reduced-motion` for accessibility
+- Animate transform and opacity (GPU-accelerated)
+- Avoid animating layout properties (width, height, margin)
+
+---
+
+## Accessibility
+
+### WCAG Guidelines
+
+**Follow WCAG 2.1 Level AA standards:**
+
+**Key Requirements:**
+1. **Perceivable**: Information must be presentable to users
+2. **Operable**: UI components must be operable
+3. **Understandable**: Information and operation must be understandable
+4. **Robust**: Content must be robust enough for assistive technologies
+
+```blade
+{{-- ✅ GOOD - Accessible form --}}
+<form>
+    <div class="mb-3">
+        <label for="patient-name" class="form-label">
+            Patient Name <span class="text-danger" aria-label="required">*</span>
+        </label>
+        <input 
+            type="text" 
+            class="form-control" 
+            id="patient-name" 
+            name="full_name"
+            aria-required="true"
+            aria-describedby="name-help"
+            required
+        >
+        <small id="name-help" class="form-text text-muted">
+            Enter the patient's full legal name
+        </small>
+        <div class="invalid-feedback" role="alert">
+            Please enter a valid name
+        </div>
+    </div>
+</form>
+
+{{-- ❌ BAD - Inaccessible form --}}
+<form>
+    <div>Name*</div>
+    <input type="text" name="name">
+    <div style="color: red; font-size: 10px;">Required</div>
+</form>
+```
+
+### Semantic HTML
+
+**Enhance screen reader compatibility:**
+
+```blade
+{{-- ✅ GOOD - Semantic structure --}}
+<header>
+    <nav aria-label="Main navigation">
+        <ul>
+            <li><a href="/">Home</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main>
+    <article>
+        <h1>Patient Record</h1>
+        <section aria-labelledby="medical-history">
+            <h2 id="medical-history">Medical History</h2>
+            <p>...</p>
+        </section>
+    </article>
+</main>
+
+<footer>
+    <p>&copy; 2025 MEDRSv4</p>
+</footer>
+
+{{-- ❌ BAD - Non-semantic divs --}}
+<div class="header">
+    <div class="nav">
+        <div class="nav-item">Home</div>
+    </div>
+</div>
+<div class="content">
+    <div class="title">Patient Record</div>
+    <div class="text">...</div>
+</div>
+```
+
+**Semantic Elements to Use:**
+- `<header>`, `<nav>`, `<main>`, `<footer>`
+- `<article>`, `<section>`, `<aside>`
+- `<h1>` through `<h6>` (in proper hierarchy)
+- `<button>` (not `<div onclick="">`)
+- `<a>` for links, `<button>` for actions
+
+### Alternative Text
+
+**Provide context for non-text content:**
+
+```blade
+{{-- ✅ GOOD - Descriptive alt text --}}
+<img 
+    src="{{ asset('images/patient-chart.png') }}" 
+    alt="Patient vital signs chart showing blood pressure readings over 7 days"
+>
+
+{{-- Icons with screen reader text --}}
+<button class="btn btn-primary">
+    <i class="bi bi-save" aria-hidden="true"></i>
+    <span class="visually-hidden">Save patient record</span>
+    Save
+</button>
+
+{{-- Decorative images --}}
+<img 
+    src="{{ asset('images/decorative-line.png') }}" 
+    alt=""
+    role="presentation"
+>
+
+{{-- ❌ BAD - Missing or poor alt text --}}
+<img src="chart.png" alt="chart">
+<img src="icon.png">
+<button><i class="bi bi-save"></i></button>
+```
+
+**Alt Text Guidelines:**
+- Describe the content and function, not just the image
+- Keep it concise (under 150 characters)
+- Don't start with "image of" or "picture of"
+- Use `alt=""` for decorative images
+- Use `aria-hidden="true"` for icon fonts
+
+### Keyboard Navigation
+
+**Ensure all interactive elements are keyboard accessible:**
+
+```css
+/* ✅ GOOD - Visible focus indicators */
+:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.25);
+}
+
+/* Skip to main content link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #2563eb;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 100;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+```
+
+```blade
+{{-- Skip navigation link --}}
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<nav>
+    <!-- Navigation -->
+</nav>
+
+<main id="main-content" tabindex="-1">
+    <!-- Main content -->
+</main>
+```
+
+**Keyboard Navigation Checklist:**
+- [ ] All interactive elements reachable via Tab key
+- [ ] Focus order is logical and predictable
+- [ ] Focus indicators are clearly visible
+- [ ] Skip navigation link implemented
+- [ ] Modals trap focus appropriately
+- [ ] Escape key closes modals/dropdowns
+- [ ] Enter/Space activate buttons
+- [ ] Arrow keys work in appropriate contexts
+
+### Testing with Assistive Technologies
+
+**Regularly test with:**
+- **Screen Readers**: NVDA (Windows), JAWS (Windows), VoiceOver (Mac/iOS)
+- **Browser Extensions**: WAVE, axe DevTools, Lighthouse
+- **Keyboard Only**: Navigate entire application without mouse
+- **Screen Magnification**: Test at 200% zoom
+- **Color Blindness**: Use simulators to test color-dependent UI
+
+---
+
+## Performance Optimization
+
+### Optimize Images and Assets
+
+**Minimize load times:**
+
+```blade
+{{-- ✅ GOOD - Optimized responsive images --}}
+<img 
+    src="{{ asset('images/patient-photo-800w.jpg') }}"
+    srcset="
+        {{ asset('images/patient-photo-400w.jpg') }} 400w,
+        {{ asset('images/patient-photo-800w.jpg') }} 800w,
+        {{ asset('images/patient-photo-1200w.jpg') }} 1200w
+    "
+    sizes="(max-width: 600px) 400px, (max-width: 1200px) 800px, 1200px"
+    alt="Patient identification photo"
+    loading="lazy"
+>
+
+{{-- SVG for icons (better than icon fonts) --}}
+<svg class="icon" width="24" height="24" viewBox="0 0 24 24">
+    <path d="..."/>
+</svg>
+```
+
+**Image Optimization Checklist:**
+- [ ] Use appropriate formats (JPEG for photos, PNG for graphics, SVG for icons)
+- [ ] Compress images (TinyPNG, ImageOptim)
+- [ ] Implement responsive images with `srcset`
+- [ ] Use `loading="lazy"` for below-the-fold images
+- [ ] Provide appropriate `width` and `height` attributes
+- [ ] Consider WebP format with fallbacks
+
+### Lazy Loading
+
+**Load non-critical resources on demand:**
+
+```javascript
+// ✅ GOOD - Lazy load images
+document.addEventListener('DOMContentLoaded', function() {
+    const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+    
+    // Native lazy loading (modern browsers)
+    if ('loading' in HTMLImageElement.prototype) {
+        // Browser supports native lazy loading
+    } else {
+        // Fallback for older browsers
+        const lazyLoadScript = document.createElement('script');
+        lazyLoadScript.src = 'lazysizes.min.js';
+        document.body.appendChild(lazyLoadScript);
+    }
+});
+
+// Lazy load components
+const loadComponent = async (componentName) => {
+    const module = await import(`./components/${componentName}.js`);
+    return module.default;
+};
+```
+
+**Lazy Loading Strategy:**
+- Images below the fold
+- Secondary JavaScript functionality
+- Non-critical CSS (modals, accordions)
+- Charts and graphs
+- Video content
+
+### Code Splitting
+
+**Improve initial load performance:**
+
+```javascript
+// ✅ GOOD - Load modules only when needed
+document.getElementById('openChartBtn').addEventListener('click', async () => {
+    // Load Chart.js only when user clicks to view chart
+    const Chart = await import('chart.js');
+    renderChart(Chart);
+});
+
+// Conditional loading
+if (document.querySelector('.datepicker')) {
+    import('flatpickr').then(flatpickr => {
+        flatpickr('.datepicker', {
+            // configuration
+        });
+    });
+}
+```
+
+**Code Splitting Benefits:**
+- Smaller initial bundle size
+- Faster time to interactive
+- Better caching (unchanged chunks remain cached)
+- Reduced bandwidth usage
+
+### Core Web Vitals
+
+**Monitor and optimize:**
+
+1. **Largest Contentful Paint (LCP)**: < 2.5s
+   - Optimize server response time
+   - Eliminate render-blocking resources
+   - Optimize and compress images
+   - Implement CDN for static assets
+
+2. **First Input Delay (FID)**: < 100ms
+   - Minimize JavaScript execution time
+   - Break up long tasks
+   - Use web workers for heavy computations
+   - Defer non-critical JavaScript
+
+3. **Cumulative Layout Shift (CLS)**: < 0.1
+   - Set explicit dimensions for images and videos
+   - Reserve space for dynamic content
+   - Avoid inserting content above existing content
+   - Use transform animations instead of layout animations
+
+```css
+/* ✅ GOOD - Prevent layout shift */
+.card-image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9; /* Reserve space before image loads */
+}
+
+/* ✅ GOOD - Use transform for animations */
+.slide-in {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-out;
+}
+
+.slide-in.active {
+    transform: translateX(0);
+}
+
+/* ❌ BAD - Causes layout shift */
+.slide-in {
+    position: relative;
+    left: -100%;
+    transition: left 0.3s ease-out;
+}
+```
+
+---
+
+## User Feedback
+
+### Clear Feedback Mechanisms
+
+**Provide immediate feedback for user actions:**
+
+```blade
+{{-- Success feedback --}}
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+{{-- Error feedback --}}
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Please correct the following errors:</strong>
+        <ul class="mb-0 mt-2">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+{{-- Info feedback --}}
+<div class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle me-2"></i>
+    This action cannot be undone. Please confirm.
+</div>
+```
+
+**Feedback Types:**
+- **Success**: Green, checkmark icon
+- **Error**: Red, warning icon
+- **Warning**: Orange/yellow, caution icon
+- **Info**: Blue, information icon
+
+### Loading Indicators
+
+**Show progress for asynchronous operations:**
+
+```javascript
+// ✅ GOOD - Loading states
+function savePatientRecord() {
+    const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.innerHTML;
+    
+    // Show loading state
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    
+    fetch('/api/patients', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Show success
+        saveBtn.innerHTML = '<i class="bi bi-check"></i> Saved!';
+        setTimeout(() => {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }, 2000);
+    })
+    .catch(error => {
+        // Show error
+        saveBtn.innerHTML = '<i class="bi bi-x"></i> Error';
+        saveBtn.disabled = false;
+    });
+}
+```
+
+```blade
+{{-- Loading skeleton for content --}}
+<div class="skeleton-loader" aria-busy="true" aria-live="polite">
+    <div class="skeleton-line"></div>
+    <div class="skeleton-line"></div>
+    <div class="skeleton-line short"></div>
+</div>
+
+{{-- Spinner for actions --}}
+<button class="btn btn-primary" disabled>
+    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+    <span class="visually-hidden">Loading...</span>
+    Loading...
+</button>
+```
+
+### Clear Error Messages
+
+**Help users recover from errors:**
+
+```blade
+{{-- ✅ GOOD - Helpful error message --}}
+<div class="alert alert-danger" role="alert">
+    <strong>Error:</strong> Unable to save patient record.
+    <p class="mb-2">The NHS number you entered (123-456-789) is already assigned to another patient.</p>
+    <p class="mb-0">
+        <strong>What you can do:</strong>
+        <ul>
+            <li>Check if this patient already exists in the system</li>
+            <li>Verify the NHS number is correct</li>
+            <li>Contact support if you need assistance</li>
+        </ul>
+    </p>
+</div>
+
+{{-- ❌ BAD - Unhelpful error message --}}
+<div class="error">Error 409: Conflict</div>
+```
+
+**Error Message Guidelines:**
+- Explain what went wrong (not just error codes)
+- Tell users why it happened (if possible)
+- Provide clear recovery steps
+- Use plain language (avoid technical jargon)
+- Be empathetic and helpful
+
+### Analytics Implementation
+
+**Track user behavior and pain points:**
+
+```javascript
+// Track page views
+gtag('event', 'page_view', {
+    page_title: 'Patient List',
+    page_location: window.location.href,
+    page_path: window.location.pathname
+});
+
+// Track user interactions
+document.getElementById('addPatientBtn').addEventListener('click', function() {
+    gtag('event', 'click', {
+        event_category: 'Patient Management',
+        event_label: 'Add Patient Button',
+        value: 1
+    });
+});
+
+// Track errors
+window.addEventListener('error', function(e) {
+    gtag('event', 'exception', {
+        description: e.message,
+        fatal: false
+    });
+});
+
+// Track form abandonment
+let formStarted = false;
+document.querySelector('form').addEventListener('input', function() {
+    if (!formStarted) {
+        formStarted = true;
+        gtag('event', 'form_start', {
+            form_name: 'Add Patient Form'
+        });
+    }
+});
+```
+
+---
+
+## Information Architecture
+
+### Logical Content Organization
+
+**Facilitate easy access to information:**
+
+```blade
+{{-- ✅ GOOD - Clear page structure --}}
+<div class="page-header mb-4">
+    <h1 class="page-title">Patient Record: {{ $patient->full_name }}</h1>
+    <div class="page-actions">
+        <button class="btn btn-primary">Edit</button>
+    </div>
+</div>
+
+<div class="row">
+    {{-- Primary information --}}
+    <div class="col-lg-8">
+        <div class="card-custom mb-4">
+            <div class="card-custom-header">
+                <h5 class="card-custom-title">Demographics</h5>
+            </div>
+            <div class="card-custom-body">
+                <!-- Patient details -->
+            </div>
+        </div>
+        
+        <div class="card-custom mb-4">
+            <div class="card-custom-header">
+                <h5 class="card-custom-title">Medical History</h5>
+            </div>
+            <div class="card-custom-body">
+                <!-- Medical history -->
+            </div>
+        </div>
+    </div>
+    
+    {{-- Secondary information --}}
+    <div class="col-lg-4">
+        <div class="card-custom mb-4">
+            <div class="card-custom-header">
+                <h5 class="card-custom-title">Quick Actions</h5>
+            </div>
+            <div class="card-custom-body">
+                <!-- Quick action buttons -->
+            </div>
+        </div>
+        
+        <div class="card-custom">
+            <div class="card-custom-header">
+                <h5 class="card-custom-title">Recent Activity</h5>
+            </div>
+            <div class="card-custom-body">
+                <!-- Activity log -->
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+**Organization Principles:**
+- Group related content together
+- Primary content in main area, secondary in sidebar
+- Use consistent section headings
+- Show most important information first
+- Implement progressive disclosure for complex data
+
+### Clear Labeling and Categorization
+
+**Make navigation intuitive:**
+
+```blade
+{{-- ✅ GOOD - Clear, descriptive labels --}}
+<ul class="nav nav-tabs">
+    <li class="nav-item">
+        <a class="nav-link active" href="#demographics">
+            <i class="bi bi-person"></i> Demographics
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="#medical">
+            <i class="bi bi-heart-pulse"></i> Medical History
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="#medications">
+            <i class="bi bi-capsule"></i> Medications
+        </a>
+    </li>
+</ul>
+
+{{-- ❌ BAD - Vague labels --}}
+<ul>
+    <li><a href="#tab1">Info</a></li>
+    <li><a href="#tab2">Details</a></li>
+    <li><a href="#tab3">More</a></li>
+</ul>
+```
+
+### Effective Search Functionality
+
+**Help users find information quickly:**
+
+```blade
+<form method="GET" action="{{ route('patients.index') }}" class="search-form">
+    <div class="input-group">
+        <input 
+            type="search" 
+            class="form-control" 
+            name="search" 
+            placeholder="Search by name, NHS number, or patient number..."
+            value="{{ request('search') }}"
+            aria-label="Search patients"
+        >
+        <button class="btn btn-primary" type="submit">
+            <i class="bi bi-search"></i>
+            <span class="visually-hidden">Search</span>
+        </button>
+    </div>
+    
+    {{-- Advanced filters (collapsible) --}}
+    <div class="collapse" id="advancedFilters">
+        <div class="card card-body mt-2">
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="filter-gender" class="form-label">Gender</label>
+                    <select class="form-select" id="filter-gender" name="gender">
+                        <option value="">All</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <!-- More filters -->
+            </div>
+        </div>
+    </div>
+    
+    <button 
+        class="btn btn-link" 
+        type="button" 
+        data-bs-toggle="collapse" 
+        data-bs-target="#advancedFilters"
+    >
+        Advanced Filters
+    </button>
+</form>
+```
+
+---
+
+## Mobile-First Design
+
+### Design for Mobile First
+
+**Start with smallest screen, scale up:**
+
+```css
+/* ✅ GOOD - Mobile-first approach */
+.card-custom {
+    /* Base styles for mobile */
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Scale up for larger screens */
+@media (min-width: 768px) {
+    .card-custom {
+        padding: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .card-custom {
+        padding: 2rem;
+    }
+}
+
+/* ❌ BAD - Desktop-first (harder to adapt down) */
+.card-custom {
+    padding: 2rem;
+    margin: 2rem;
+    width: 800px;
+}
+
+@media (max-width: 768px) {
+    .card-custom {
+        padding: 1rem;
+        margin: 1rem;
+        width: 100%;
+        /* Many more overrides needed */
+    }
+}
+```
+
+### Touch-Friendly Elements
+
+**Minimum 44x44 pixel touch targets:**
+
+```css
+/* All interactive elements must be touch-friendly */
+.btn,
+.form-control,
+.form-select {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+}
+
+/* Adequate spacing between touch targets */
+.btn-group .btn {
+    margin-right: 8px;
+}
+
+.form-check {
+    padding-left: 1.5em;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.form-check-input {
+    width: 24px;
+    height: 24px;
+    margin-top: 0;
+}
+```
+
+### Gestures for Common Actions
+
+**Support intuitive touch gestures:**
+
+```javascript
+// Swipe to delete (mobile lists)
+let touchStartX = 0;
+let touchEndX = 0;
+
+element.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+});
+
+element.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+});
+
+function handleSwipe() {
+    if (touchEndX < touchStartX - 50) {
+        // Swipe left - show delete button
+        showDeleteButton();
+    }
+    if (touchEndX > touchStartX + 50) {
+        // Swipe right - hide delete button
+        hideDeleteButton();
+    }
+}
+```
+
+### Thumb Zones
+
+**Position important actions within easy reach:**
+
+```
+┌─────────────────────────┐
+│  Hard to Reach          │ ← Top corners: less important
+│                         │
+│  Easy to Reach          │ ← Middle: content
+│                         │
+│  ✓ Easy with Thumb      │ ← Bottom third: primary actions
+└─────────────────────────┘
+```
+
+```blade
+{{-- ✅ GOOD - Primary actions at bottom on mobile --}}
+<div class="patient-form">
+    <!-- Form fields -->
+    
+    <div class="form-actions sticky-bottom">
+        <button class="btn btn-primary btn-lg w-100" type="submit">
+            Save Patient Record
+        </button>
+    </div>
+</div>
+```
+
+---
+
+## Consistency
+
+### Design System
+
+**Develop and adhere to a design system:**
+
+```css
+/* Design tokens in admin-global.css */
+:root {
+    /* Spacing scale */
+    --space-1: 0.25rem;  /* 4px */
+    --space-2: 0.5rem;   /* 8px */
+    --space-3: 0.75rem;  /* 12px */
+    --space-4: 1rem;     /* 16px */
+    --space-6: 1.5rem;   /* 24px */
+    --space-8: 2rem;     /* 32px */
+    
+    /* Border radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+```
+
+**Component Library Documentation:**
+- Document all reusable components
+- Include usage examples
+- Specify when to use each variant
+- Show do's and don'ts
+
+### Consistent Terminology
+
+**Use the same words throughout:**
+
+```blade
+{{-- ✅ GOOD - Consistent terms --}}
+<button>Save Patient</button>
+<a href="{{ route('patients.create') }}">Add New Patient</a>
+<h1>Edit Patient Record</h1>
+
+{{-- ❌ BAD - Inconsistent terms --}}
+<button>Save Patient</button>
+<a href="{{ route('patients.create') }}">Create New Patient</a>
+<h1>Modify Patient Information</h1>
+```
+
+**Terminology Checklist:**
+- Save vs. Submit vs. Confirm
+- Add vs. Create vs. New
+- Edit vs. Modify vs. Update
+- Delete vs. Remove vs. Erase
+- Cancel vs. Close vs. Dismiss
+
+### Consistent Element Positioning
+
+**Place recurring elements in the same location:**
+
+```blade
+{{-- ✅ GOOD - Consistent positioning --}}
+{{-- Page header: always at top --}}
+<div class="page-header">
+    <h1 class="page-title">{{ $pageTitle }}</h1>
+    <div class="page-actions">
+        {{-- Action buttons always right-aligned --}}
+        <button class="btn btn-primary">Primary Action</button>
+    </div>
+</div>
+
+{{-- Search: always at top of list --}}
+<div class="search-bar mb-3">
+    <input type="search" class="form-control" placeholder="Search...">
+</div>
+
+{{-- Filters: always below search --}}
+<div class="filters mb-3">
+    <!-- Filter controls -->
+</div>
+
+{{-- Table: always after filters --}}
+<div class="table-responsive">
+    <table class="table table-custom">
+        <!-- Table content -->
+    </table>
+</div>
+
+{{-- Pagination: always at bottom --}}
+<div class="pagination-wrapper">
+    {{ $items->links() }}
+</div>
+```
+
+---
+
+## Testing and Iteration
+
+### A/B Testing
+
+**Test critical design decisions:**
+
+```javascript
+// Simple A/B test implementation
+function getTestVariant() {
+    // Assign user to variant A or B
+    const variant = Math.random() < 0.5 ? 'A' : 'B';
+    localStorage.setItem('button-color-test', variant);
+    return variant;
+}
+
+// Apply variant
+const variant = localStorage.getItem('button-color-test') || getTestVariant();
+
+if (variant === 'A') {
+    document.querySelector('.cta-button').classList.add('cta-blue');
+} else {
+    document.querySelector('.cta-button').classList.add('cta-green');
+}
+
+// Track conversions
+document.querySelector('.cta-button').addEventListener('click', function() {
+    gtag('event', 'conversion', {
+        variant: variant,
+        test_name: 'CTA Button Color'
+    });
+});
+```
+
+### User Behavior Analysis
+
+**Use heatmaps and session recordings:**
+
+```javascript
+// Track clicks on specific elements
+document.querySelectorAll('[data-track-click]').forEach(element => {
+    element.addEventListener('click', function(e) {
+        const elementLabel = this.dataset.trackClick;
+        gtag('event', 'element_click', {
+            element_label: elementLabel,
+            page_path: window.location.pathname
+        });
+    });
+});
+
+// Track scroll depth
+let maxScroll = 0;
+window.addEventListener('scroll', function() {
+    const scrollPercent = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+    
+    if (scrollPercent > maxScroll) {
+        maxScroll = Math.floor(scrollPercent / 25) * 25; // Round to 25%
+        
+        gtag('event', 'scroll_depth', {
+            percent: maxScroll,
+            page_path: window.location.pathname
+        });
+    }
+});
+```
+
+### User Feedback Collection
+
+**Regularly gather feedback:**
+
+```blade
+{{-- Feedback button (always visible) --}}
+<button class="btn-feedback" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+    <i class="bi bi-chat-left-text"></i>
+    <span class="visually-hidden">Send Feedback</span>
+</button>
+
+{{-- Feedback modal --}}
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedbackModalLabel">Send Feedback</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ route('feedback.store') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="page_url" value="{{ request()->fullUrl() }}">
+                    
+                    <div class="mb-3">
+                        <label for="feedback-type" class="form-label">Type of Feedback</label>
+                        <select class="form-select" id="feedback-type" name="type" required>
+                            <option value="">Select type</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="feature">Feature Request</option>
+                            <option value="improvement">Improvement Suggestion</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="feedback-message" class="form-label">Your Feedback</label>
+                        <textarea 
+                            class="form-control" 
+                            id="feedback-message" 
+                            name="message" 
+                            rows="5" 
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+---
+
+## Documentation
+
+### Style Guide
+
+**Maintain comprehensive documentation:**
+
+```markdown
+# MEDRSv4 Style Guide
+
+## Colors
+
+### Primary Colors
+- **Primary Blue**: `#2563eb` - Use for primary actions, links, focus states
+- **Primary Hover**: `#1d4ed8` - Use for hover states on primary elements
+
+### Semantic Colors
+- **Success Green**: `#16a34a` - Success messages, positive actions
+- **Warning Orange**: `#ea580c` - Warning messages, caution states
+- **Danger Red**: `#dc2626` - Error messages, destructive actions
+
+## Typography
+
+### Font Family
+Primary: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
+
+### Font Sizes
+- `--text-xs`: 0.75rem (12px) - Small labels, captions
+- `--text-sm`: 0.875rem (14px) - Secondary text, help text
+- `--text-base`: 1rem (16px) - Body text
+- `--text-lg`: 1.125rem (18px) - Emphasized text
+- `--text-xl`: 1.25rem (20px) - Section headings
+- `--text-2xl`: 1.5rem (24px) - Page titles
+
+## Spacing
+
+Use the spacing scale consistently:
+- `--space-1`: 0.25rem (4px)
+- `--space-2`: 0.5rem (8px)
+- `--space-3`: 0.75rem (12px)
+- `--space-4`: 1rem (16px)
+- `--space-6`: 1.5rem (24px)
+- `--space-8`: 2rem (32px)
+
+## Components
+
+### Buttons
+[Button examples and usage guidelines]
+
+### Cards
+[Card examples and usage guidelines]
+
+### Forms
+[Form examples and usage guidelines]
+```
+
+---
+
+## Summary
+
+**Key Takeaways:**
+
+1. **Visual Design**: Use consistent colors, typography, and hierarchy
+2. **Interaction**: Create intuitive, familiar, responsive interfaces
+3. **Accessibility**: Follow WCAG AA standards, test with assistive tech
+4. **Performance**: Optimize assets, lazy load, monitor Core Web Vitals
+5. **Feedback**: Provide clear, immediate feedback for all actions
+6. **Mobile-First**: Design for small screens, scale up
+7. **Consistency**: Use design system, consistent terminology
+8. **Testing**: A/B test, analyze behavior, gather feedback
+9. **Documentation**: Maintain style guide and component library
+
+**Remember**: Good UI/UX is invisible. Users should accomplish their goals effortlessly without thinking about the interface.
+
+---
+
+## Related Rules
+- **[user-friendly-ui-patterns.mdc](./user-friendly-ui-patterns.mdc)** - Form control patterns
+- **[responsive-table-pattern.mdc](./responsive-table-pattern.mdc)** - Table responsiveness
+- **[common-js-css-standards.mdc](./common-js-css-standards.mdc)** - CSS/JS standards
+- **[blade-template-syntax.mdc](./blade-template-syntax.mdc)** - Template validation
+- **[project-rules.mdc](./project-rules.mdc)** - Testing requirements
+
+---
+
+## Change Log
+
+### 2025-10-19
+- Initial creation
+- Comprehensive UI/UX design principles
+- Accessibility guidelines
+- Performance optimization
+- Mobile-first design patterns
+- Consistency and testing guidance

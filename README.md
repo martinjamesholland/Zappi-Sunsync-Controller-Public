@@ -79,6 +79,25 @@ Intelligent EV charging management based on solar generation:
 - Detailed logging and API call tracking
 - Cron job setup instructions for automation
 
+### Battery Discharge to Grid
+Automatically sell excess battery energy back to the grid during peak evening hours:
+
+![Battery Discharge Settings](public/images/battery-discharge-settings.png)
+
+**Features:**
+- **Smart Discharge Calculation** - Accounts for house consumption during the waiting period
+- **Configurable Settings:**
+  - Total battery capacity (Wh)
+  - Maximum discharge rate (W)
+  - Average house load (W)
+  - Discharge to SOC level
+  - Minimum SOC at check time
+  - Check time and stop time
+- **Intelligent Scheduling** - Calculates optimal start time based on battery level and discharge rate
+- **EV Priority Protection** - Automatically blocks discharge when EV is connected or charging
+- **Real-time Calculation** - Shows calculated start time, discharge duration, and energy exported
+- **Automatic Reset** - Returns to normal mode at stop time each night
+
 ### Settings & Configuration
 Secure configuration management:
 
@@ -631,6 +650,9 @@ GET /cgi-zappi-mode-Z{serialNumber} # Get/Set charging mode
 - Configure charging modes
 - Set charging schedules
 - Monitor charging sessions
+- **Configure battery discharge to grid**
+- Set up time slot controls
+- View inverter status in real-time
 
 **Settings** (`/settings`)
 - Update API credentials
@@ -971,6 +993,34 @@ Replace:
 - Optimizes energy usage in real-time
 
 **Security:** The `cron_mode=1` parameter tells the system to use API key authentication instead of session-based auth, making it safe for automated calls.
+
+### How Battery Discharge to Grid Works
+
+The battery discharge feature intelligently calculates when to start discharging your battery to the grid based on several factors:
+
+**Calculation Process:**
+1. **Check Time** (e.g., 8:00 PM): System checks if battery SOC is above minimum threshold
+2. **Energy Available**: Calculates total energy available to discharge (from current SOC to target SOC)
+3. **Initial Timing**: Calculates initial discharge time and start time
+4. **Waiting Period**: Accounts for time between check time and start time
+5. **House Load Adjustment**: Subtracts house consumption during waiting period (since battery will power home during wait)
+6. **Final Calculation**: Calculates optimal start time and duration
+
+**Smart Features:**
+- **House Load Compensation**: Accounts for battery powering the house during the waiting period
+- **EV Priority**: Automatically blocks discharge if EV is plugged in or charging
+- **Minimum SOC Protection**: Won't enable discharge if battery is below configured minimum
+- **Automatic Reset**: Returns to normal operating mode at stop time each night
+- **Real-time Display**: Shows calculated start time, duration, and energy to be exported
+
+**Example Scenario:**
+- Battery: 80% SOC → 20% target = 6 kWh available
+- Discharge Rate: 2.75 kW
+- Check Time: 8:00 PM
+- Stop Time: 11:45 PM
+- House Load: 350W
+
+The system calculates: Start discharge at 9:47 PM for 1.98 hours, exporting 5.45 kWh to grid.
 
 ### Regular Maintenance Tasks
 
