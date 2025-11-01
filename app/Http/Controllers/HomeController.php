@@ -103,12 +103,30 @@ class HomeController extends Controller
             $zappiApiRequests
         );
 
+        // Get inverter info and settings for status display
+        $inverterSettings = null;
+        $inverterInfo = null;
+        try {
+            if ($plantInfo && isset($plantInfo['id'])) {
+                $inverterInfo = $this->sunSyncService->getInverterInfo($plantInfo['id']);
+                if ($inverterInfo && isset($inverterInfo['sn'])) {
+                    $inverterSettings = $this->sunSyncService->getInverterSettings($inverterInfo['sn']);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to get inverter settings for display', [
+                'error' => $e->getMessage()
+            ]);
+        }
+
         return view('home', [
             'sunSyncData' => $maskedSunSyncData,
             'zappiData' => $maskedZappiData,
             'plantInfo' => $maskedPlantInfo,
             'sunSyncApiRequests' => $maskedSunSyncApiRequests,
-            'zappiApiRequests' => $maskedZappiApiRequests
+            'zappiApiRequests' => $maskedZappiApiRequests,
+            'inverterInfo' => $inverterInfo,
+            'inverterSettings' => $inverterSettings
         ]);
     }
 } 

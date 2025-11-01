@@ -465,7 +465,7 @@ class EvChargingController extends Controller
                 'request' => $updateSettings,
                 'response' => ['success' => $success]
             ];
-            sleep(1);
+            //sleep(1);
             $success = $this->sunSyncService->updateSystemModeSettings($inverterSn, $updateSettings);
             
             $apiCalls[] = [

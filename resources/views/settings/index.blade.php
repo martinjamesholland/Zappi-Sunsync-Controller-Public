@@ -273,5 +273,154 @@
             </div>
         </div>
     </div>
+    
+    <!-- Cost Settings Section -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8">
+            <div class="card" id="cost-settings">
+                <div class="card-header">
+                    <h2 class="mb-0"><i class="bi bi-currency-pound"></i> Cost Settings</h2>
+                </div>
+                <div class="card-body">
+                    @if(session('success'))
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('settings.update') }}">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="cost_settings" value="1">
+
+                        <!-- Cost Rates -->
+                        <div class="mb-4">
+                            <h4>Electricity Rates</h4>
+                            
+                            <div class="mb-3">
+                                <label for="peak_rate" class="form-label">Peak Rate (per kWh)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">£</span>
+                                    <input type="number" step="0.01" class="form-control @error('peak_rate') is-invalid @enderror" 
+                                        id="peak_rate" name="peak_rate" 
+                                        value="{{ old('peak_rate', $costSettings['peak_rate'] ?? 0.30) }}"
+                                        placeholder="0.30">
+                                </div>
+                                <small class="text-muted">Charged during peak hours</small>
+                                @error('peak_rate')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="off_peak_rate" class="form-label">Off-Peak Rate (per kWh)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">£</span>
+                                    <input type="number" step="0.01" class="form-control @error('off_peak_rate') is-invalid @enderror" 
+                                        id="off_peak_rate" name="off_peak_rate" 
+                                        value="{{ old('off_peak_rate', $costSettings['off_peak_rate'] ?? 0.07) }}"
+                                        placeholder="0.07">
+                                </div>
+                                <small class="text-muted">Charged during off-peak hours</small>
+                                @error('off_peak_rate')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ev_charging_rate" class="form-label">EV Charging Rate (per kWh)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">£</span>
+                                    <input type="number" step="0.01" class="form-control @error('ev_charging_rate') is-invalid @enderror" 
+                                        id="ev_charging_rate" name="ev_charging_rate" 
+                                        value="{{ old('ev_charging_rate', $costSettings['ev_charging_rate'] ?? 0.07) }}"
+                                        placeholder="0.07">
+                                </div>
+                                <small class="text-muted">Rate charged for EV charging from grid</small>
+                                @error('ev_charging_rate')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="export_credit_rate" class="form-label">Export Credit (per kWh)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">£</span>
+                                    <input type="number" step="0.01" class="form-control @error('export_credit_rate') is-invalid @enderror" 
+                                        id="export_credit_rate" name="export_credit_rate" 
+                                        value="{{ old('export_credit_rate', $costSettings['export_credit_rate'] ?? 0.15) }}"
+                                        placeholder="0.15">
+                                </div>
+                                <small class="text-muted">Credit received for exporting to grid</small>
+                                @error('export_credit_rate')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Peak Hours -->
+                        <div class="mb-4">
+                            <h4>Peak Hours</h4>
+                            <p class="text-muted">Define when peak rates apply (off-peak is the opposite)</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="peak_start_hour" class="form-label">Peak Start Time</label>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <input type="number" class="form-control @error('peak_start_hour') is-invalid @enderror" 
+                                                id="peak_start_hour" name="peak_start_hour" 
+                                                value="{{ old('peak_start_hour', $costSettings['peak_start_hour'] ?? 5) }}"
+                                                min="0" max="23" placeholder="Hour">
+                                            <small class="text-muted">Hour (0-23)</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="number" class="form-control @error('peak_start_minute') is-invalid @enderror" 
+                                                id="peak_start_minute" name="peak_start_minute" 
+                                                value="{{ old('peak_start_minute', $costSettings['peak_start_minute'] ?? 30) }}"
+                                                min="0" max="59" placeholder="Minute">
+                                            <small class="text-muted">Minute (0-59)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="peak_end_hour" class="form-label">Peak End Time</label>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <input type="number" class="form-control @error('peak_end_hour') is-invalid @enderror" 
+                                                id="peak_end_hour" name="peak_end_hour" 
+                                                value="{{ old('peak_end_hour', $costSettings['peak_end_hour'] ?? 23) }}"
+                                                min="0" max="23" placeholder="Hour">
+                                            <small class="text-muted">Hour (0-23)</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="number" class="form-control @error('peak_end_minute') is-invalid @enderror" 
+                                                id="peak_end_minute" name="peak_end_minute" 
+                                                value="{{ old('peak_end_minute', $costSettings['peak_end_minute'] ?? 30) }}"
+                                                min="0" max="59" placeholder="Minute">
+                                            <small class="text-muted">Minute (0-59)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <strong>Current Setting:</strong> Peak hours are 
+                                {{ sprintf('%02d:%02d', $costSettings['peak_start_hour'] ?? 5, $costSettings['peak_start_minute'] ?? 30) }} to 
+                                {{ sprintf('%02d:%02d', $costSettings['peak_end_hour'] ?? 23, $costSettings['peak_end_minute'] ?? 30) }}
+                                <br>
+                                <small>During this period, peak rates apply. Outside this period, off-peak rates apply.</small>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Update Cost Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection 

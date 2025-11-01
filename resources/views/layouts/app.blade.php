@@ -14,6 +14,14 @@
             height: 100vh;
             background-color: #f8f9fa;
             border-right: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         
         .sidebar .nav-link {
@@ -69,11 +77,12 @@
             
             <!-- Sidebar -->
             <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-                <div class="position-sticky pt-3">
-                    <div class="text-center mb-4 d-none d-md-block">
-                        <h4>Solar Battery EV Charger</h4>
-                    </div>
-                    <ul class="nav flex-column">
+                <div class="sidebar-content">
+                    <div class="position-sticky pt-3">
+                        <div class="text-center mb-4 d-none d-md-block">
+                            <h4>Solar Battery EV Charger</h4>
+                        </div>
+                        <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('/') ? 'active' : '' }}" href="{{ url('/') }}">
                                 <i class="bi bi-house-door"></i> Home
@@ -95,12 +104,27 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('reports.index') ? 'active' : '' }}" href="{{ route('reports.index') }}">
+                                <i class="bi bi-graph-up"></i> Reports
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('settings.index') ? 'active' : '' }}" href="{{ route('settings.index') }}">
                                 <i class="bi bi-gear-fill"></i> Settings
                             </a>
                         </li>
-                        <!-- Add more menu items as needed -->
-                    </ul>
+                        </ul>
+                        
+                        <!-- Logout Button -->
+                        <div class="mt-auto pt-3 border-top">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="nav-link text-danger w-100 text-start border-0 bg-transparent">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </nav>
             

@@ -22,14 +22,5 @@ yarn-error.log
 /.vscode
 /.zed
 .DS_Store
-.DS_Store
-/.cursor
-/.cursor
-.DS_Store
-/.cursor
-/.cursor/rules
-.cursor/.DS_Store
-.cursor/rules/.DS_Store
-/storage
-.DS_Store
 public/.DS_Store
+.DS_Store

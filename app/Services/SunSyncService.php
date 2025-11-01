@@ -19,7 +19,10 @@ class SunSyncService
 
     public function __construct(DataMaskingService $dataMaskingService)
     {
-        $this->accessToken = Cache::get('sunsynk_access_token');
+        // Avoid hitting cache (and therefore DB) during application boot/constructor.
+        // Token will be lazily loaded in ensureAuthenticated() to prevent artisan
+        // commands from failing when cache/table is unavailable.
+        $this->accessToken = null;
         $this->dataMaskingService = $dataMaskingService;
     }
 
@@ -138,6 +141,19 @@ class SunSyncService
      */
     private function ensureAuthenticated(): bool
     {
+        // Lazy-load token from cache safely (no DB/cache access in constructor)
+        if ($this->accessToken === null) {
+            try {
+                $this->accessToken = Cache::get('sunsynk_access_token');
+            } catch (\Throwable $e) {
+                // If cache store is not ready (e.g., database driver without table),
+                // proceed to authenticate instead of failing here.
+                Log::warning('SunSyncService: Unable to read token from cache; will authenticate', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
         if ($this->accessToken) {
             return true;
         }

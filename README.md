@@ -92,6 +92,29 @@ Secure configuration management:
 - Step-by-step guidance for obtaining credentials
 - All passwords and keys are masked for security
 
+### Reports & Analytics
+Comprehensive energy analytics and cost tracking:
+
+**Features:**
+- System overview statistics (total records, days of data, max solar generation)
+- Home usage analytics with statistical breakdown
+- Energy distribution charts (solar, grid, battery)
+- Load distribution analysis
+- Solar yield tracking over time
+- Battery efficiency monitoring
+- Grid interaction trends (import/export)
+- EV charging activity patterns
+- **Cost breakdown** with peak/off-peak pricing
+- **Daily cost trends** for financial tracking
+- Customizable date ranges (7, 14, 30, 60, 90 days, YTD, All Time)
+- Real-time data updates every 15 minutes via automated ETL
+
+**Performance Optimizations:**
+- 45x faster cost calculations (18.9s → 423ms)
+- Pre-computed data aggregates (daily and 15-minute buckets)
+- Fast database queries with optimized indexing
+- Responsive charts and visualizations
+
 ---
 
 ## 🛠️ Technology Stack
@@ -314,6 +337,36 @@ Once all steps are validated, you'll be automatically redirected to your energy 
 
 ---
 
+## 🔐 User Authentication
+
+After the initial setup, the application requires login credentials to access the dashboard and manage your system.
+
+### Login Credentials
+
+The application uses the **same credentials as your SunSync account**:
+
+- **Username**: Your SunSync username (`SUNSYNC_USERNAME` from `.env`)
+- **Password**: Your SunSync password (`SUNSYNC_PASSWORD` from `.env`)
+
+**Note:** These are the credentials you use to log into the SunSync mobile app or the SunSync web portal at https://api.sunsynk.net.
+
+### Accessing the Application
+
+1. Navigate to your domain (e.g., `https://yourdomain.com`)
+2. You'll be redirected to the login page if not authenticated
+3. Enter your SunSync username and password
+4. Click "Sign In" to access the dashboard
+
+### Security Features
+
+- **Session-based authentication** - Secure session management
+- **Remember me** - Option to stay logged in (optional)
+- **Auto-logout** - Automatic logout button in the sidebar
+- **CSRF protection** - All forms protected against cross-site request forgery
+- **Rate limiting** - Prevents brute force attacks
+
+---
+
 ## ⚙️ Manual Configuration (Advanced)
 
 If you need to manually edit configuration, you can do so through cPanel File Manager or FTP:
@@ -445,6 +498,25 @@ The system uses an optimized database structure for efficient energy data loggin
 - `energy_flow_logs` - Real-time power flow data (PV, battery, grid, EV)
 - `ev_charging_settings` - EV charging mode and schedule configuration
 - `sun_sync_settings` - Solar inverter settings and preferences
+- `cost_settings` - Tariff configuration for cost calculations
+
+### Data Mart (Analytics)
+
+The system includes a data mart for fast analytics and reporting:
+
+**Dimension Tables:**
+- `dim_date` - Date dimension with calendar attributes (year, month, week, weekend flags)
+- `dim_time` - Time dimension with daypart classification (morning, afternoon, evening, night)
+
+**Fact/Aggregate Tables:**
+- `agg_energy_15min` - 15-minute aggregated power flows (grid, PV, home load, battery, EV)
+- `agg_energy_daily` - Daily aggregated power flows and sample counts
+
+**Benefits:**
+- **45x faster** cost calculations by pre-aggregating data
+- **Efficient storage** - Reduced storage requirements via aggregation
+- **Fast queries** - Indexed for quick time-range filtering
+- **Automated refresh** - ETL runs every 15 minutes via scheduler
 
 ### Data Retention
 
@@ -531,6 +603,18 @@ GET /cgi-zappi-mode-Z{serialNumber} # Get/Set charging mode
 - Historical data charts
 - Quick status overview
 
+**Reports** (`/reports`)
+- System overview statistics
+- Home usage analytics
+- Energy distribution charts
+- Solar yield tracking
+- Battery efficiency monitoring
+- Grid interaction trends
+- EV charging activity
+- **Cost breakdown** with peak/off-peak pricing
+- **Daily cost trends**
+- Customizable date ranges (7, 14, 30, 60, 90 days, YTD, All Time)
+
 **Zappi Status** (`/zappi/status`)
 - Current charging status
 - Charge mode control
@@ -552,6 +636,7 @@ GET /cgi-zappi-mode-Z{serialNumber} # Get/Set charging mode
 - Update API credentials
 - Test connections
 - System configuration
+- Cost settings for tariff management
 
 ### Real-Time Updates
 
@@ -559,6 +644,7 @@ The dashboard automatically refreshes data:
 - **Energy flow**: Every 5 seconds
 - **Device status**: Every 10 seconds
 - **Charts/history**: Every 30 seconds
+- **Data mart**: Every 15 minutes (automated background refresh)
 
 ---
 
@@ -582,6 +668,8 @@ This application implements multiple security layers to protect your data:
 ✅ **Token Management** - Automatic OAuth token refresh  
 ✅ **Digest Auth** - Secure authentication for Zappi API  
 ✅ **Request Signing** - Cryptographic signatures on API requests  
+✅ **API Key Authentication** - Secure API keys for cron jobs and automated tasks  
+✅ **Dual Authentication** - Session-based auth for web UI, API keys for automation  
 
 ### Data Privacy
 
@@ -663,12 +751,32 @@ php artisan view:clear
 php artisan route:clear
 ```
 
-**Without SSH:**
+**Without SSH (Web-Based):**
+Visit this URL with your browser (replace with your domain and token):
+```
+https://yourdomain.com/maintenance/clear-caches?token=YOUR_ETL_WEBHOOK_KEY
+```
+Your `ETL_WEBHOOK_KEY` is set in your `.env` file.
+
+**Manual Alternative:**
 Delete these folders via cPanel File Manager:
 - `bootstrap/cache/*.php` files (except `.gitignore`)
 - `storage/framework/cache/data/*` contents
 
+### Running Migrations (Web-Based Option)
+
+If you don't have SSH/CLI access:
+
+**Via Web Browser:**
+```
+https://yourdomain.com/maintenance/run-migrations?token=YOUR_ETL_WEBHOOK_KEY
+```
+
+This will run all pending migrations securely via HTTP.
+
 ### Common Artisan Commands for cPanel
+
+**If you have SSH/Terminal access:**
 
 ```bash
 # Check application status
@@ -685,7 +793,16 @@ php artisan migrate --force
 
 # Optimize for production
 php artisan optimize
+
+# Refresh data mart (backfill)
+php artisan app:refresh-energy-data-mart --since=2025-07-31T00:00:00 --max-minutes=0 --max-days=100
+
+# Clear all caches
+php artisan config:clear && php artisan cache:clear && php artisan route:clear
 ```
+
+**Without SSH:**
+Use the web-based maintenance endpoints (see above).
 
 ---
 
@@ -823,9 +940,37 @@ For automated data collection and maintenance, set up a cron job in cPanel:
 Replace `/home/yourusername/public_html` with your actual path.
 
 **What this does:**
+- **Refreshes data mart every 15 minutes** - Updates aggregate tables for fast reporting
 - Collects energy data at scheduled intervals
 - Performs cleanup tasks
 - Refreshes API tokens automatically
+
+**Alternative:** If you prefer to call the ETL directly without the scheduler:
+- **Minute:** `*/15` (every 15 minutes)
+- **Command:** `cd /home/yourusername/public_html && php artisan app:refresh-energy-data-mart >> /dev/null 2>&1`
+
+### Automated EV Charging Control
+
+For automated EV charging and inverter control, you can set up an additional cron job to check EV status and adjust inverter settings:
+
+**Recommended:** Check every 5 minutes
+- **Minute:** `*/5`
+- **Command:** 
+```bash
+curl -s "https://yourdomain.com/ev-charging/status?cron_mode=1&api_key=YOUR_API_KEY" > /dev/null 2>&1
+```
+
+Replace:
+- `yourdomain.com` with your actual domain
+- `YOUR_API_KEY` with your `API_KEY` from the `.env` file
+
+**What it does:**
+- Monitors Zappi EV charging status
+- Automatically adjusts SunSync inverter settings when EV is charging
+- Manages battery discharge to grid based on schedule
+- Optimizes energy usage in real-time
+
+**Security:** The `cron_mode=1` parameter tells the system to use API key authentication instead of session-based auth, making it safe for automated calls.
 
 ### Regular Maintenance Tasks
 
@@ -940,10 +1085,16 @@ Special thanks to all contributors who have helped improve this project!
 
 Recent enhancements completed:
 
+- [x] **User authentication system** with session-based login
+- [x] **Secure API key authentication** for cron jobs and automated tasks
 - [x] Battery discharge to grid feature with intelligent scheduling
 - [x] Real-time inverter status display (model, mode, serial)
 - [x] Smart discharge calculation accounting for house load during waiting period
 - [x] EV priority logic (blocks discharge when EV connected/charging)
+- [x] **Comprehensive Reports & Analytics page** with cost tracking
+- [x] **Data mart implementation** for fast aggregate queries
+- [x] **Performance optimizations** (45x faster cost calculations)
+- [x] **Web-based maintenance endpoints** for servers without CLI access
 
 Future enhancements planned:
 
@@ -953,10 +1104,41 @@ Future enhancements planned:
 - [ ] Multi-user support with roles
 - [ ] Integration with additional inverter brands
 - [ ] Weather-based charging optimization
-- [ ] Energy cost calculator
 - [ ] Export data to CSV/Excel
 - [ ] Dark mode UI theme
 - [ ] Multi-language support
+
+---
+
+## 🔧 Web-Based Server Maintenance
+
+For hosting environments without CLI/SSH access, this application provides secure web-based endpoints:
+
+### Available Endpoints
+
+All endpoints require the `ETL_WEBHOOK_KEY` token set in your `.env` file.
+
+**1. Clear Caches:**
+```
+https://yourdomain.com/maintenance/clear-caches?token=YOUR_ETL_WEBHOOK_KEY
+```
+
+**2. Run Migrations:**
+```
+https://yourdomain.com/maintenance/run-migrations?token=YOUR_ETL_WEBHOOK_KEY
+```
+
+**3. Refresh Data Mart:**
+```
+https://yourdomain.com/reports/refresh-data-mart?token=YOUR_ETL_WEBHOOK_KEY
+```
+
+**With Custom Parameters:**
+```
+https://yourdomain.com/reports/refresh-data-mart?token=YOUR_ETL_WEBHOOK_KEY&since=2025-07-31T00:00:00&max_minutes=0&max_days=100
+```
+
+**Security:** All endpoints require your `ETL_WEBHOOK_KEY` token to prevent unauthorized access.
 
 ---
 

@@ -20,6 +20,37 @@
                     <h1 class="fs-4">Welcome to Solar, Battery & EV Charger Collaboration</h1>
                 </div>
                 
+                {{-- Inverter Status Banner --}}
+                @if(isset($inverterInfo) && isset($inverterSettings))
+                    @php
+                        $currentMode = $inverterSettings['sysWorkMode'] ?? '2';
+                        $isDischargeMode = $currentMode === '0';
+                        $modeText = $isDischargeMode ? 'Discharge Mode' : 'Normal Mode';
+                        $modeColor = $isDischargeMode ? 'warning' : 'success';
+                        $modeIcon = $isDischargeMode ? 'battery-charging' : 'house-check';
+                        $inverterModel = $inverterInfo['model'] ?? $inverterInfo['inverterModel'] ?? 'Unknown Model';
+                    @endphp
+                    <div class="col-md-12 mb-4">
+                        <div class="alert alert-{{ $modeColor }} alert-dismissible fade show d-flex align-items-center" role="alert">
+                            <i class="bi bi-{{ $modeIcon }} fs-4 me-3"></i>
+                            <div class="flex-grow-1">
+                                <strong>Inverter Status:</strong> {{ $inverterModel }}
+                                <span class="badge bg-{{ $modeColor }} ms-2">{{ $modeText }}</span>
+                                @if($isDischargeMode)
+                                    <small class="d-block text-muted mt-1">
+                                        <i class="bi bi-arrow-down-circle"></i> Battery is discharging to grid
+                                    </small>
+                                @else
+                                    <small class="d-block text-muted mt-1">
+                                        <i class="bi bi-check-circle"></i> Operating in normal mode (limited to home)
+                                    </small>
+                                @endif
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </div>
+                @endif
+                
                 <!-- Combined Energy Flow Card -->
                 <div id="combined-energy-flow" class="col-12 mb-4">
                     <div class="card">

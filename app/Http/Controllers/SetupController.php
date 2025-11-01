@@ -68,10 +68,14 @@ class SetupController extends Controller
             // Generate new API key (random 32-character string)
             $apiKey = bin2hex(random_bytes(32));
             
-            // Update .env file with both keys
+            // Generate ETL webhook key for secure maintenance endpoints
+            $etlWebhookKey = bin2hex(random_bytes(16)); // 32-character token
+            
+            // Update .env file with all keys
             $success = $this->envService->update([
                 'APP_KEY' => $appKey,
-                'API_KEY' => $apiKey
+                'API_KEY' => $apiKey,
+                'ETL_WEBHOOK_KEY' => $etlWebhookKey
             ]);
 
             if (!$success) {

@@ -12,12 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('energy_flow_logs', function (Blueprint $table) {
-            // Add new columns
-            $table->float('grid_power_sunsync')->nullable()->after('grid_power');
+            // Add new columns if they don't exist
+            if (!Schema::hasColumn('energy_flow_logs', 'grid_power_sunsync')) {
+                $table->float('grid_power_sunsync')->nullable()->after('grid_power');
+            }
             
             // Rename car node connection fields for consistency with the data array
-            $table->renameColumn('car_node_pst', 'car_node_connection');
-            $table->renameColumn('car_node_zmo', 'car_node_Mode');
+            // Only rename if the source column exists
+            if (Schema::hasColumn('energy_flow_logs', 'car_node_pst')) {
+                $table->renameColumn('car_node_pst', 'car_node_connection');
+            }
+            if (Schema::hasColumn('energy_flow_logs', 'car_node_zmo')) {
+                $table->renameColumn('car_node_zmo', 'car_node_Mode');
+            }
         });
     }
 

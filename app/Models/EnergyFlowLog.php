@@ -20,7 +20,6 @@ class EnergyFlowLog extends Model
         'ups_load_power',
         'smart_load_power',
         'home_load_power',
-        'total_load_power',
         'sunsync_updated_at',
         'zappi_updated_at',
         'home_load_sunsync',

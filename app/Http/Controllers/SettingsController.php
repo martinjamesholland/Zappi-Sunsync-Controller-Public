@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Exception;
+use App\Models\CostSetting;
 
 class SettingsController extends Controller
 {
@@ -29,6 +30,22 @@ class SettingsController extends Controller
             'DB_USERNAME' => !empty(env('DB_USERNAME')),
             'DB_PASSWORD' => !empty(env('DB_PASSWORD')),
         ];
+        
+        // Get cost settings
+        $costSettings = [
+            'peak_rate' => CostSetting::getValue('peak_rate', 0.30),
+            'off_peak_rate' => CostSetting::getValue('off_peak_rate', 0.07),
+            'ev_charging_rate' => CostSetting::getValue('ev_charging_rate', 0.07),
+            'export_credit_rate' => CostSetting::getValue('export_credit_rate', 0.15),
+            'peak_start' => CostSetting::getValue('peak_start', 530),
+            'peak_end' => CostSetting::getValue('peak_end', 2330),
+        ];
+        
+        // Parse peak times for display
+        $costSettings['peak_start_hour'] = intval($costSettings['peak_start'] / 100);
+        $costSettings['peak_start_minute'] = $costSettings['peak_start'] % 100;
+        $costSettings['peak_end_hour'] = intval($costSettings['peak_end'] / 100);
+        $costSettings['peak_end_minute'] = $costSettings['peak_end'] % 100;
 
         // Check for database connection issues
         $dbError = null;
@@ -49,11 +66,16 @@ class SettingsController extends Controller
             $dbError = $e->getMessage();
         }
 
-        return view('settings.index', compact('settingsStatus', 'dbError'));
+        return view('settings.index', compact('settingsStatus', 'dbError', 'costSettings'));
     }
 
     public function update(Request $request): RedirectResponse
     {
+        // Handle cost settings separately
+        if ($request->has('cost_settings')) {
+            return $this->updateCostSettings($request);
+        }
+        
         $validated = $request->validate([
             'ZAPPI_SERIAL' => 'nullable|string',
             'ZAPPI_PASSWORD' => 'nullable|string',
@@ -130,5 +152,37 @@ class SettingsController extends Controller
         }
 
         file_put_contents($envFile, $envContent);
+    }
+    
+    /**
+     * Update cost settings
+     */
+    private function updateCostSettings(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'peak_rate' => 'required|numeric|min:0',
+            'off_peak_rate' => 'required|numeric|min:0',
+            'ev_charging_rate' => 'required|numeric|min:0',
+            'export_credit_rate' => 'required|numeric|min:0',
+            'peak_start_hour' => 'required|integer|min:0|max:23',
+            'peak_start_minute' => 'required|integer|min:0|max:59',
+            'peak_end_hour' => 'required|integer|min:0|max:23',
+            'peak_end_minute' => 'required|integer|min:0|max:59',
+        ]);
+        
+        // Calculate peak start and end times as HHMM
+        $peakStart = (intval($validated['peak_start_hour']) * 100) + intval($validated['peak_start_minute']);
+        $peakEnd = (intval($validated['peak_end_hour']) * 100) + intval($validated['peak_end_minute']);
+        
+        // Update all cost settings
+        \App\Models\CostSetting::setValue('peak_rate', $validated['peak_rate'], 'Peak hours rate');
+        \App\Models\CostSetting::setValue('off_peak_rate', $validated['off_peak_rate'], 'Off-peak hours rate');
+        \App\Models\CostSetting::setValue('ev_charging_rate', $validated['ev_charging_rate'], 'EV charging rate');
+        \App\Models\CostSetting::setValue('export_credit_rate', $validated['export_credit_rate'], 'Export to grid credit rate');
+        \App\Models\CostSetting::setValue('peak_start', $peakStart, 'Peak hours start time');
+        \App\Models\CostSetting::setValue('peak_end', $peakEnd, 'Peak hours end time');
+        
+        return redirect()->route('settings.index')
+            ->with('success', 'Cost settings updated successfully.');
     }
 } 

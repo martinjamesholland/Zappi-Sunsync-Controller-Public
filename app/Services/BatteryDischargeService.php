@@ -240,6 +240,12 @@ class BatteryDischargeService
     /**
      * Determine if we should be in discharge mode based on all rules and current time
      * 
+     * IMPORTANT: Minimum SOC logic:
+     * - Minimum SOC (discharge_min_soc) is INFORMATIONAL only - it warns but does NOT block
+     * - Discharge WILL start if SOC >= discharge_to_soc (default 20%)
+     * - Once discharge starts, it continues until reaching discharge_to_soc or stop time
+     * - This prevents premature stopping of an active discharge session
+     * 
      * @param array $zappiStatus Zappi status
      * @param float $currentSoc Current battery SOC
      * @param Carbon $currentTime Current time
@@ -292,24 +298,29 @@ class BatteryDischargeService
             ];
         }
 
-        // Rule 2: Check minimum SOC at check time
-        $socCheck = $this->checkMinimumSocRule($currentSoc, $minimumSoc, $currentTime, $checkTime);
-        if (!$socCheck['allowed']) {
-            return [
-                'shouldDischarge' => false,
-                'reason' => $socCheck['reason'],
-                'startTime' => null,
-                'stopTime' => $stopDateTime,
-            ];
-        }
-
         // Calculate when discharge should start
         $hoursToDischarge = $this->calculateDischargeHours($currentSoc, $settings, $currentTime);
         $startTime = $this->calculateDischargeStartTime($hoursToDischarge, $stopTime, $currentTime);
 
         // Check if we're in the discharge window
         if ($currentTime->greaterThanOrEqualTo($startTime) && $currentTime->lessThan($stopDateTime)) {
-            // Check if battery is above discharge-to level
+            /**
+             * WE'RE ACTIVELY IN THE DISCHARGE WINDOW
+             * 
+             * Important: We do NOT check minimum SOC here anymore!
+             * Once discharge has started, we let it continue running to completion.
+             * This prevents the bug where an active discharge would stop prematurely
+             * just because SOC dropped below the minimum threshold.
+             * 
+             * We only check the discharge-to level (default 20%) as the stopping condition.
+             * 
+             * Example scenario that caused the bug:
+             * - Battery starts at 49% (below 50% minimum)
+             * - Discharge starts (because it's above 20% discharge-to level)
+             * - Later check at 22:58 sees 49% < 50% minimum
+             * - OLD BEHAVIOR: Would stop discharge prematurely ❌
+             * - NEW BEHAVIOR: Continues discharge until reaching 20% ✅
+             */
             if ($currentSoc > $dischargeToSoc) {
                 return [
                     'shouldDischarge' => true,
@@ -326,9 +337,39 @@ class BatteryDischargeService
                 ];
             }
         } else if ($currentTime->lessThan($startTime)) {
+            /**
+             * WE'RE BEFORE THE DISCHARGE START TIME
+             * 
+             * Minimum SOC check is now INFORMATIONAL ONLY - it warns but does NOT block.
+             * This allows discharge to start even if SOC is below the minimum threshold.
+             * 
+             * Changed behavior:
+             * - OLD: SOC below minimum would block discharge from ever starting
+             * - NEW: SOC below minimum shows a warning but allows discharge to proceed
+             * 
+             * Rationale: The minimum SOC is a recommendation, not a hard requirement.
+             * If the user has battery capacity available (above discharge-to level),
+             * they should be able to use it for EV charging even if it's below the "ideal" minimum.
+             */
+            $warnings = [];
+            
+            // Parse check time to see if we're past it
+            [$checkHour, $checkMinute] = explode(':', $checkTime);
+            $checkDateTime = $currentTime->copy()->setTime((int)$checkHour, (int)$checkMinute, 0);
+            
+            // If we're at or past check time and SOC is below minimum, add a warning
+            if ($currentTime->greaterThanOrEqualTo($checkDateTime) && $currentSoc < $minimumSoc) {
+                $warnings[] = "Battery SOC ({$currentSoc}%) is below recommended minimum ({$minimumSoc}%)";
+            }
+            
+            $reason = "Before discharge start time ({$startTime->format('H:i')})";
+            if (!empty($warnings)) {
+                $reason .= " - " . implode(", ", $warnings);
+            }
+            
             return [
                 'shouldDischarge' => false,
-                'reason' => "Before discharge start time ({$startTime->format('H:i')})",
+                'reason' => $reason,
                 'startTime' => $startTime,
                 'stopTime' => $stopDateTime,
             ];

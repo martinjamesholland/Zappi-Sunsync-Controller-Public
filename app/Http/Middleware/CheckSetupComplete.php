@@ -18,8 +18,13 @@ class CheckSetupComplete
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Skip check if we're already on setup pages
-        if ($request->is('setup*')) {
+        // Skip check if we're already on setup pages, login page, or cron requests
+        if ($request->is('setup*') || $request->is('login')) {
+            return $next($request);
+        }
+        
+        // Skip for cron mode requests with API key
+        if ($request->has('cron_mode') && $request->has('api_key')) {
             return $next($request);
         }
 
